@@ -6,3 +6,4 @@ export { default as ProgressBar } from './ProgressBar';
 export { default as Loading } from './Loading';
 export { default as WorkflowCanvas } from './WorkflowCanvas';
 export { default as TaskNode } from './TaskNode';
+export { default as ProtectedRoute } from './ProtectedRoute';

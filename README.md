@@ -150,16 +150,16 @@ VITE_API_URL=http://localhost:8000
 - [x] **Auto-refresh** en detalles de ejecución
 - [x] **Drag & drop** de nodos en el canvas
 - [x] **Conexiones visuales** entre nodos
+- [x] - Login
+- [x] Implementar autenticación y autorización
 
 ## 🚀 Próximos Pasos
 
 - [ ] Implementar API backend
 - [ ] Agregar filtros y búsqueda en WorkflowsList
 - [ ] Agregar validación de schemas de parámetros
-- [ ] Implementar autenticación y autorización
 - [ ] Validación de DAG (detección de ciclos)
 - [ ] Undo/Redo en el editor visual
 - [ ] Tests unitarios con Vitest
 - [ ] Tests E2E con Playwright
 - [ ] Modo claro
-- [ ] Login
