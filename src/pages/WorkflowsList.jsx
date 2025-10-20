@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { workflowsApi } from '../services/api';
-import { Loading, StateBadge } from '../components';
+import { Loading, StateBadge, ConfirmModal } from '../components';
 
 const WorkflowsList = () => {
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ isOpen: false, workflowId: null, workflowName: '' });
 
   useEffect(() => {
     loadWorkflows();
@@ -27,16 +28,26 @@ const WorkflowsList = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this workflow?')) return;
-
+  const handleDelete = async () => {
     try {
-      await workflowsApi.delete(id);
+      await workflowsApi.delete(deleteModal.workflowId);
       await loadWorkflows();
     } catch (err) {
-      alert('Failed to delete workflow');
+      setError('Error al eliminar el workflow');
       console.error('Error deleting workflow:', err);
     }
+  };
+
+  const openDeleteModal = (workflow) => {
+    setDeleteModal({
+      isOpen: true,
+      workflowId: workflow.id,
+      workflowName: workflow.name,
+    });
+  };
+
+  const closeDeleteModal = () => {
+    setDeleteModal({ isOpen: false, workflowId: null, workflowName: '' });
   };
 
   const handleRunNow = async (id) => {
@@ -165,7 +176,7 @@ const WorkflowsList = () => {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleDelete(workflow.id)}
+                      onClick={() => openDeleteModal(workflow)}
                       className="p-2 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors"
                       title="Eliminar"
                     >
@@ -180,6 +191,18 @@ const WorkflowsList = () => {
           ))}
         </div>
       )}
+
+      {/* Modal de confirmación de eliminación */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        onClose={closeDeleteModal}
+        onConfirm={handleDelete}
+        title="Eliminar Workflow"
+        message={`¿Estás seguro de que deseas eliminar el workflow "${deleteModal.workflowName}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+      />
     </div>
   );
 };

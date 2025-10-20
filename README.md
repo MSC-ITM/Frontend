@@ -150,8 +150,9 @@ VITE_API_URL=http://localhost:8000
 - [x] **Auto-refresh** en detalles de ejecución
 - [x] **Drag & drop** de nodos en el canvas
 - [x] **Conexiones visuales** entre nodos
-- [x] - Login
+- [x] Login
 - [x] Implementar autenticación y autorización
+- [x] Modo claro
 
 ## 🚀 Próximos Pasos
 
@@ -162,4 +163,3 @@ VITE_API_URL=http://localhost:8000
 - [ ] Undo/Redo en el editor visual
 - [ ] Tests unitarios con Vitest
 - [ ] Tests E2E con Playwright
-- [ ] Modo claro

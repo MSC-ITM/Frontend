@@ -1,3 +1,190 @@
 @import "tailwindcss/theme" layer(theme);
 @import "tailwindcss/preflight" layer(base);
 @import "tailwindcss/utilities" layer(utilities);
+
+/* Modo Claro - Estilos personalizados con gradiente púrpura/violeta */
+.light-mode {
+  /* Fondo con gradiente vibrante púrpura-violeta */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+  min-height: 100vh;
+}
+
+.light-mode .bg-\[\#0a0a0a\] {
+  background: transparent !important;
+}
+
+.light-mode .bg-\[\#1a1a1a\] {
+  background: rgba(241, 245, 249, 0.95) !important; /* slate-100 con transparencia */
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px 0 rgba(102, 126, 234, 0.25) !important;
+  border-color: rgba(148, 163, 184, 0.3) !important;
+}
+
+.light-mode .bg-\[\#2a2a2a\] {
+  background: rgba(226, 232, 240, 0.95) !important; /* slate-200 */
+}
+
+.light-mode .bg-\[\#3a3a3a\] {
+  background: rgba(241, 245, 249, 1) !important; /* slate-100 */
+}
+
+.light-mode .bg-black\/40,
+.light-mode .bg-black\/20 {
+  background: rgba(248, 250, 252, 0.95) !important; /* slate-50 */
+}
+
+.light-mode .text-white,
+.light-mode .text-cyan-100,
+.light-mode .text-cyan-400,
+.light-mode .text-cyan-300\/80 {
+  color: #1e293b !important;
+}
+
+.light-mode .text-cyan-100\/60,
+.light-mode .text-gray-400,
+.light-mode .text-gray-500 {
+  color: #475569 !important;
+}
+
+.light-mode .text-cyan-400\/60 {
+  color: #64748b !important;
+}
+
+.light-mode .border-cyan-500\/20,
+.light-mode .border-cyan-500\/10,
+.light-mode .border-cyan-500\/30 {
+  border-color: rgba(255, 255, 255, 0.4) !important;
+}
+
+.light-mode .border-cyan-400\/40,
+.light-mode .border-cyan-400\/50 {
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+.light-mode .shadow-cyan-500\/50,
+.light-mode .shadow-cyan-500\/30,
+.light-mode .shadow-cyan-500\/10,
+.light-mode .shadow-cyan-500\/5,
+.light-mode .shadow-cyan-500\/20,
+.light-mode .shadow-cyan-500\/40 {
+  --tw-shadow-color: rgba(124, 58, 237, 0.3) !important;
+  box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow) !important;
+}
+
+.light-mode input::placeholder,
+.light-mode .placeholder-gray-500::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Botón de tema en modo claro */
+.light-mode button svg.text-cyan-400 {
+  color: #ffffff !important;
+}
+
+/* Badges en modo claro - Mejorar contraste */
+.light-mode .text-gray-300,
+.light-mode .text-cyan-300,
+.light-mode .text-emerald-300,
+.light-mode .text-rose-300,
+.light-mode .text-yellow-300,
+.light-mode .text-orange-300 {
+  color: #0f172a !important; /* slate-900 para máximo contraste */
+  font-weight: 600 !important;
+}
+
+.light-mode .bg-gray-500\/20 {
+  background: rgba(148, 163, 184, 0.9) !important; /* slate-400 más sólido */
+}
+
+.light-mode .bg-cyan-500\/20 {
+  background: rgba(6, 182, 212, 0.85) !important;
+}
+
+.light-mode .bg-emerald-500\/20 {
+  background: rgba(16, 185, 129, 0.85) !important;
+}
+
+.light-mode .bg-rose-500\/20 {
+  background: rgba(244, 63, 94, 0.85) !important;
+}
+
+.light-mode .bg-yellow-500\/20 {
+  background: rgba(234, 179, 8, 0.85) !important;
+}
+
+.light-mode .bg-orange-500\/20 {
+  background: rgba(249, 115, 22, 0.85) !important;
+}
+
+/* Controles del diseñador visual - Mejorar visibilidad */
+.light-mode .text-sm.font-semibold,
+.light-mode h2,
+.light-mode h3 {
+  color: #0f172a !important;
+}
+
+/* Parámetros en nodos - Mejorar visibilidad */
+.light-mode input[type="text"],
+.light-mode input[type="number"],
+.light-mode textarea,
+.light-mode select {
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: #0f172a !important;
+  border-color: rgba(148, 163, 184, 0.5) !important;
+}
+
+/* Logs - Mejorar contraste */
+.light-mode .text-xs {
+  color: #475569 !important; /* slate-600 */
+}
+
+.light-mode .text-gray-600 {
+  color: #334155 !important; /* slate-700 */
+}
+
+.light-mode pre,
+.light-mode code {
+  background: rgba(255, 255, 255, 0.9) !important;
+  color: #0f172a !important;
+}
+
+/* Modal en modo claro - Mejorar contraste */
+.light-mode .bg-rose-500\/20,
+.light-mode .bg-yellow-500\/20,
+.light-mode .bg-cyan-500\/20 {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border: 2px solid currentColor !important;
+}
+
+.light-mode .text-rose-400,
+.light-mode .text-yellow-400 {
+  color: #dc2626 !important; /* red-600 para mejor contraste */
+}
+
+.light-mode .text-cyan-400 {
+  color: #0891b2 !important; /* cyan-600 */
+}
+
+/* Mejorar texto del modal en modo claro */
+.light-mode h3.text-white,
+.light-mode .text-gray-300 {
+  color: #0f172a !important; /* slate-900 para máximo contraste */
+}
+
+/* Botón cancelar del modal en modo claro */
+.light-mode .bg-gray-500\/20 {
+  background: rgba(148, 163, 184, 0.3) !important;
+}
+
+.light-mode .bg-gray-500\/30 {
+  background: rgba(148, 163, 184, 0.5) !important;
+}
+
+.light-mode .border-gray-500\/30 {
+  border-color: rgba(100, 116, 139, 0.5) !important;
+}
+
+/* Transiciones suaves */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}

@@ -1,12 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { WorkflowsList, WorkflowEditor, RunDetail, Login } from './pages';
 import { ProtectedRoute } from './components';
 
 // Header Component con botón de usuario
 const AppHeader = () => {
   const { user, logout, isAuthenticated } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [showDropdown, setShowDropdown] = useState(false);
   const location = useLocation();
 
@@ -35,12 +37,31 @@ const AppHeader = () => {
             </h1>
           </div>
 
-          {/* User Menu */}
-          <div className="relative">
+          {/* Theme Toggle & User Menu */}
+          <div className="flex items-center gap-3">
+            {/* Theme Toggle Button */}
             <button
-              onClick={() => setShowDropdown(!showDropdown)}
-              className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-400/40 transition-all group"
+              onClick={toggleTheme}
+              className="p-2.5 bg-[#2a2a2a] border border-cyan-500/20 rounded-xl hover:bg-[#3a3a3a] hover:border-cyan-400/40 transition-all shadow-sm group"
+              title={theme === 'light' ? 'Cambiar a modo oscuro' : 'Cambiar a modo claro'}
             >
+              {theme === 'light' ? (
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                </svg>
+              ) : (
+                <svg className="w-5 h-5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              )}
+            </button>
+
+            {/* User Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowDropdown(!showDropdown)}
+                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 hover:border-cyan-400/40 transition-all group"
+              >
               {/* Avatar con iniciales */}
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg shadow-cyan-500/30 group-hover:shadow-cyan-500/50 transition-shadow">
                 <span className="text-white font-bold text-sm">{user?.initials || 'AD'}</span>
@@ -61,10 +82,10 @@ const AppHeader = () => {
               >
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
-            </button>
+              </button>
 
-            {/* Dropdown Menu */}
-            {showDropdown && (
+              {/* Dropdown Menu */}
+              {showDropdown && (
               <>
                 {/* Overlay para cerrar el dropdown */}
                 <div
@@ -102,7 +123,8 @@ const AppHeader = () => {
                   </div>
                 </div>
               </>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -125,9 +147,10 @@ const AppLayout = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppLayout>
-          <Routes>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppLayout>
+            <Routes>
             {/* Ruta pública */}
             <Route path="/login" element={<Login />} />
 
@@ -183,9 +206,10 @@ function App() {
 
             {/* Redirect a login si no coincide ninguna ruta */}
             <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </AppLayout>
-      </AuthProvider>
+            </Routes>
+          </AppLayout>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }
