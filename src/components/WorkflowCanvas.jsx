@@ -1,0 +1,202 @@
+import { useCallback, useState, useEffect } from 'react';
+import ReactFlow, {
+  MiniMap,
+  Controls,
+  Background,
+  useNodesState,
+  useEdgesState,
+  addEdge,
+  Panel,
+  BackgroundVariant,
+} from 'reactflow';
+import 'reactflow/dist/style.css';
+import TaskNode from './TaskNode';
+
+const nodeTypes = {
+  taskNode: TaskNode,
+};
+
+/**
+ * WorkflowCanvas - Visual workflow editor with drag & drop nodes
+ * @param {Object} props
+ * @param {Array} props.initialSteps - Initial workflow steps
+ * @param {Array} props.initialEdges - Initial workflow edges
+ * @param {Array} props.taskTypes - Available task types
+ * @param {Function} props.onNodesChange - Callback when nodes change
+ * @param {Function} props.onEdgesChange - Callback when edges change
+ */
+const WorkflowCanvas = ({
+  initialSteps = [],
+  initialEdges = [],
+  taskTypes = [],
+  onNodesChange,
+  onEdgesChange,
+}) => {
+  // Convert steps to React Flow nodes
+  const convertStepsToNodes = (steps) => {
+    return steps.map((step, index) => ({
+      id: step.node_key,
+      type: 'taskNode',
+      position: { x: 250 * index, y: 200 },
+      data: {
+        label: step.node_key,
+        taskType: step.type,
+        params: step.params,
+        taskTypes,
+      },
+    }));
+  };
+
+  // Convert edges to React Flow edges
+  const convertToReactFlowEdges = (edges) => {
+    return edges.map((edge) => ({
+      id: edge.id,
+      source: edge.from_node_key,
+      target: edge.to_node_key,
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: '#3b82f6', strokeWidth: 2 },
+    }));
+  };
+
+  const [nodes, setNodes, onNodesStateChange] = useNodesState(
+    convertStepsToNodes(initialSteps)
+  );
+  const [edges, setEdges, onEdgesStateChange] = useEdgesState(
+    convertToReactFlowEdges(initialEdges)
+  );
+
+  // Handle edge connections
+  const onConnect = useCallback(
+    (params) => {
+      const newEdge = {
+        ...params,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2 },
+      };
+      setEdges((eds) => addEdge(newEdge, eds));
+    },
+    [setEdges]
+  );
+
+  // Notify parent component of changes (with debounce to avoid infinite loops)
+  useEffect(() => {
+    if (onNodesChange && nodes.length > 0) {
+      const timer = setTimeout(() => {
+        const steps = nodes.map((node) => ({
+          node_key: node.id,
+          type: node.data.taskType,
+          params: node.data.params || {},
+        }));
+        onNodesChange(steps);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [nodes]);
+
+  useEffect(() => {
+    if (onEdgesChange && edges.length > 0) {
+      const timer = setTimeout(() => {
+        const workflowEdges = edges.map((edge) => ({
+          id: edge.id,
+          from_node_key: edge.source,
+          to_node_key: edge.target,
+        }));
+        onEdgesChange(workflowEdges);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [edges]);
+
+  // Add new node
+  const addNode = () => {
+    const newNodeId = `node_${Date.now()}`;
+    const newNode = {
+      id: newNodeId,
+      type: 'taskNode',
+      position: {
+        x: Math.random() * 500,
+        y: Math.random() * 300,
+      },
+      data: {
+        label: newNodeId,
+        taskType: taskTypes[0]?.type || '',
+        params: {},
+        taskTypes,
+      },
+    };
+    setNodes((nds) => [...nds, newNode]);
+  };
+
+  // Delete selected nodes and edges
+  const deleteSelected = () => {
+    setNodes((nds) => nds.filter((node) => !node.selected));
+    setEdges((eds) => eds.filter((edge) => !edge.selected));
+  };
+
+  return (
+    <div className="w-full h-[600px] bg-[#1a1a1a] rounded-xl overflow-hidden border border-cyan-500/20 shadow-2xl shadow-cyan-500/10">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesStateChange}
+        onEdgesChange={onEdgesStateChange}
+        onConnect={onConnect}
+        nodeTypes={nodeTypes}
+        fitView
+        attributionPosition="bottom-left"
+        className="bg-[#1a1a1a]"
+      >
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={16}
+          size={1}
+          color="#0891b2"
+          className="opacity-20"
+        />
+        <Controls className="bg-gray-900/90 backdrop-blur-sm border border-cyan-500/30 rounded-lg" />
+        <MiniMap
+          className="bg-gray-900/90 backdrop-blur-sm border border-cyan-500/30 rounded-lg"
+          nodeColor={(node) => {
+            if (node.selected) return '#06b6d4';
+            return '#6366f1';
+          }}
+        />
+        <Panel position="top-left" className="flex gap-2">
+          <button
+            onClick={addNode}
+            className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg shadow-cyan-500/20 font-medium text-sm flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            Agregar Nodo
+          </button>
+          <button
+            onClick={deleteSelected}
+            className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all shadow-lg shadow-pink-500/20 font-medium text-sm flex items-center gap-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            Eliminar
+          </button>
+        </Panel>
+        <Panel position="top-right" className="bg-gray-900/90 backdrop-blur-sm border border-cyan-500/30 rounded-lg px-4 py-2">
+          <div className="text-cyan-100 text-sm">
+            <div className="font-semibold text-cyan-400">Controles:</div>
+            <div className="text-xs text-gray-300 mt-1">
+              • Click para seleccionar<br/>
+              • Arrastra para mover<br/>
+              • Conecta los puntos para crear flujos<br/>
+              • Scroll para zoom
+            </div>
+          </div>
+        </Panel>
+      </ReactFlow>
+    </div>
+  );
+};
+
+export default WorkflowCanvas;
