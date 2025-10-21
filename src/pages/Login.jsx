@@ -82,7 +82,7 @@ const Login = () => {
           <h1 className="text-3xl font-bold bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent mb-2">
             Sistema de Workflows
           </h1>
-          <p className="text-cyan-100/60">Iniciar Sesión</p>
+          <p className="text-cyan-100/40">Iniciar Sesión</p>
         </div>
 
         {/* Login Card */}
@@ -217,7 +217,7 @@ const Login = () => {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-sm text-gray-500 mt-6">
+        <p className="text-center text-sm text-gray-600 mt-6">
           Sistema de Orquestación de Workflows © 2025
         </p>
       </div>

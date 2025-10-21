@@ -92,9 +92,9 @@ const ConfirmModal = ({
 
       {/* Modal */}
       <div className="flex min-h-full items-center justify-center p-4">
-        <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-[#1a1a1a] border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 transition-all">
+        <div className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-[#1a1a1a] border border-cyan-500/20 shadow-2xl shadow-cyan-500/10 transition-all modal-container">
           {/* Content */}
-          <div className="p-6">
+          <div className="p-6 modal-content">
             {/* Icon */}
             <div className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${currentStyle.iconBg} mb-4`}>
               <div className={currentStyle.iconColor}>
@@ -116,7 +116,7 @@ const ConfirmModal = ({
             <div className="flex gap-3">
               <button
                 onClick={onClose}
-                className="flex-1 px-4 py-2.5 bg-gray-500/20 text-gray-300 border border-gray-500/30 rounded-lg hover:bg-gray-500/30 transition-colors font-medium"
+                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 transition-all shadow-lg shadow-gray-500/20 font-medium"
               >
                 {cancelText}
               </button>

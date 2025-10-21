@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { runsApi } from '../services/api';
-import { Button, Card, Loading, StateBadge, ProgressBar } from '../components';
+import { Button, Card, Loading, StateBadge, ProgressBar, ConfirmModal } from '../components';
 
 const RunDetail = () => {
   const { runId } = useParams();
@@ -14,6 +14,7 @@ const RunDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [cancelModal, setCancelModal] = useState(false);
 
   useEffect(() => {
     loadRunDetails();
@@ -65,13 +66,11 @@ const RunDetail = () => {
   };
 
   const handleCancel = async () => {
-    if (!confirm('¿Estás seguro de que quieres cancelar esta ejecución?')) return;
-
     try {
       await runsApi.cancel(runId);
       await loadRunDetails();
     } catch (err) {
-      alert('Error al cancelar la ejecución');
+      setError('Error al cancelar la ejecución');
       console.error('Error canceling run:', err);
     }
   };
@@ -128,7 +127,7 @@ const RunDetail = () => {
           </label>
           {(run.state === 'Running' || run.state === 'Pending') && (
             <button
-              onClick={handleCancel}
+              onClick={() => setCancelModal(true)}
               className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-lg hover:from-rose-600 hover:to-pink-600 transition-all shadow-lg shadow-rose-500/20 font-medium text-sm"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -305,6 +304,18 @@ const RunDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Modal de confirmación para cancelar ejecución */}
+      <ConfirmModal
+        isOpen={cancelModal}
+        onClose={() => setCancelModal(false)}
+        onConfirm={handleCancel}
+        title="Cancelar Ejecución"
+        message={`¿Estás seguro de que deseas cancelar esta ejecución? Las tareas en progreso se detendrán.`}
+        confirmText="Cancelar Ejecución"
+        cancelText="Volver"
+        type="warning"
+      />
     </div>
   );
 };
