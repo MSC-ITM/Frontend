@@ -140,6 +140,28 @@ Usar prefijo `VITE_` para variables accesibles en el cliente:
 VITE_API_URL=http://localhost:8000
 ```
 
+# 🧪 Testing con Vitest
+
+## Configuración
+
+El proyecto está configurado con **Vitest** para pruebas unitarias y de integración.
+
+## Comandos Disponibles
+
+```bash
+# Ejecutar tests en modo watch (recomendado durante desarrollo)
+npm test
+
+# Ejecutar tests con interfaz visual
+npm run test:ui
+
+# Ejecutar tests una sola vez (para CI/CD)
+npm run test:run
+
+# Ejecutar tests con reporte de cobertura
+npm run test:coverage
+```
+
 ## ✅ Características Implementadas
 
 - [x] **Editor visual de workflows** con React Flow (tipo n8n)
@@ -153,6 +175,7 @@ VITE_API_URL=http://localhost:8000
 - [x] Login
 - [x] Implementar autenticación y autorización
 - [x] Modo claro
+- [x] Tests unitarios con Vitest (Sin la API)
 
 ## 🚀 Próximos Pasos
 
@@ -161,5 +184,5 @@ VITE_API_URL=http://localhost:8000
 - [ ] Agregar validación de schemas de parámetros
 - [ ] Validación de DAG (detección de ciclos)
 - [ ] Undo/Redo en el editor visual
-- [ ] Tests unitarios con Vitest
+- [ ] Tests unitarios con Vitest para cuando se conecte con la api backend
 - [ ] Tests E2E con Playwright
