@@ -1,6 +1,7 @@
 import React, { memo, useState } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { TaskType } from '../types';
+import Alert, { AlertType } from './Alert';
 
 interface TaskNodeData {
   label: string;
@@ -11,6 +12,17 @@ interface TaskNodeData {
 
 const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [paramsJson, setParamsJson] = useState(JSON.stringify(data.params, null, 2));
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    type: AlertType;
+    title: string;
+    message: string;
+  }>({
+    type: 'error',
+    title: '',
+    message: '',
+  });
 
   // Get icon based on task type
   const getTaskIcon = (taskType: string): React.ReactElement => {
@@ -41,7 +53,7 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
         </svg>
       ),
     };
-    return icons[taskType] ?? icons.http_get;
+    return icons[taskType] || icons.http_get;
   };
 
   // Get color based on task type (neon colors)
@@ -103,14 +115,18 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
         </div>
 
         {/* Parameters Preview */}
-        {Object.keys(data.params || {}).length > 0 && (
-          <div className="mt-2">
-            <div className="text-xs text-purple-400 mb-1 font-medium">Parámetros:</div>
+        <div className="mt-2">
+          <div className="text-xs text-purple-400 mb-1 font-medium">Parámetros:</div>
+          {Object.keys(data.params || {}).length > 0 ? (
             <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded border border-purple-500/30 text-gray-300 max-h-20 overflow-auto">
               {JSON.stringify(data.params, null, 2)}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded border border-purple-500/30 text-gray-500 italic">
+              Sin parámetros configurados
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Edit Button */}
@@ -119,6 +135,8 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
+          // Sincronizar el JSON actual antes de abrir el modal
+          setParamsJson(JSON.stringify(data.params, null, 2));
           setIsEditing(!isEditing);
         }}
         className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full hover:from-cyan-600 hover:to-blue-600 transition-colors shadow-lg shadow-cyan-500/50 flex items-center justify-center text-sm"
@@ -134,10 +152,10 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
         className="w-3 h-3 !bg-emerald-400 !border-2 !border-[#1e1e1e] shadow-lg shadow-emerald-400/50"
       />
 
-      {/* Edit Modal (simplified - can be expanded) */}
+      {/* Edit Modal */}
       {isEditing && (
         <div
-          className="absolute top-full left-0 mt-2 w-64 bg-[#1e1e1e] rounded-lg shadow-2xl border border-cyan-500/30 p-4 z-50"
+          className="absolute top-full left-0 mt-2 w-80 bg-[#1e1e1e] rounded-lg shadow-2xl border border-cyan-500/30 p-4 z-50"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-3">
@@ -161,7 +179,6 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
                 onChange={(e) => {
                   e.stopPropagation();
                   data.taskType = e.target.value;
-                  setIsEditing(false);
                 }}
                 onClick={(e) => e.stopPropagation()}
                 className="w-full bg-black/60 text-white border border-cyan-500/50 rounded-md px-3 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 focus:outline-none transition-all cursor-pointer hover:bg-black/70 hover:border-cyan-400/70"
@@ -173,11 +190,55 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="block text-xs text-purple-400 font-medium mb-1.5">Parámetros (JSON):</label>
+              <textarea
+                value={paramsJson}
+                onChange={(e) => {
+                  e.stopPropagation();
+                  setParamsJson(e.target.value);
+                }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs font-mono focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all min-h-[120px] resize-y"
+                placeholder='{\n  "key": "value"\n}'
+              />
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                try {
+                  const parsedParams = JSON.parse(paramsJson);
+                  data.params = parsedParams;
+                  setIsEditing(false);
+                } catch (error) {
+                  setAlertConfig({
+                    type: 'error',
+                    title: 'JSON Inválido',
+                    message: 'El formato JSON no es válido. Verifica la sintaxis.',
+                  });
+                  setShowAlert(true);
+                }
+              }}
+              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-md px-4 py-2 text-sm hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg shadow-cyan-500/20 font-medium"
+            >
+              Guardar Cambios
+            </button>
             <div className="text-xs text-gray-500 text-center pt-1 border-t border-gray-700/50">
               Click fuera para cerrar
             </div>
           </div>
         </div>
+      )}
+
+      {/* Alert Component */}
+      {showAlert && (
+        <Alert
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setShowAlert(false)}
+        />
       )}
     </div>
   );

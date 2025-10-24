@@ -284,3 +284,62 @@
 * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
+
+/* Animaciones para Alert component */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.animate-slideIn {
+  animation: slideIn 0.3s ease-out;
+}
+
+/* Alert Component - Modo Claro */
+.light-mode .bg-\[\#1e1e1e\] {
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+/* Estilos específicos para Alert en modo claro */
+.light-mode [class*="bg-gradient-to-r"][class*="from-red-500"] {
+  background: linear-gradient(to right, #dc2626, #e11d48) !important;
+}
+
+.light-mode [class*="bg-gradient-to-r"][class*="from-yellow-500"] {
+  background: linear-gradient(to right, #f59e0b, #f97316) !important;
+}
+
+.light-mode [class*="bg-gradient-to-r"][class*="from-emerald-500"] {
+  background: linear-gradient(to right, #10b981, #14b8a6) !important;
+}
+
+.light-mode [class*="bg-gradient-to-r"][class*="from-cyan-500"] {
+  background: linear-gradient(to right, #06b6d4, #3b82f6) !important;
+}
+
+.light-mode .border-gray-700\/50 {
+  border-color: rgba(203, 213, 225, 0.5) !important;
+}
+
+.light-mode .text-gray-300 {
+  color: #334155 !important;
+}
