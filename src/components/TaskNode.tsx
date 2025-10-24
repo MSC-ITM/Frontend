@@ -15,6 +15,7 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
   const [isEditing, setIsEditing] = useState(false);
   const [currentTaskType, setCurrentTaskType] = useState(data.taskType);
   const [paramsJson, setParamsJson] = useState(JSON.stringify(data.params, null, 2));
+  const [csvFile, setCsvFile] = useState<File | null>(null);
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
     type: AlertType;
@@ -31,14 +32,52 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
     setCurrentTaskType(data.taskType);
   }, [data.taskType]);
 
+  // Manejar cambio de archivo CSV
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validar que sea un archivo CSV
+    if (!file.name.endsWith('.csv') && file.type !== 'text/csv') {
+      setAlertConfig({
+        type: 'error',
+        title: 'Archivo Inválido',
+        message: 'Por favor selecciona un archivo CSV válido (.csv)',
+      });
+      setShowAlert(true);
+      e.target.value = ''; // Limpiar input
+      return;
+    }
+
+    setCsvFile(file);
+
+    // Actualizar los parámetros del nodo con información del archivo
+    const updatedParams = {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type,
+      lastModified: file.lastModified,
+    };
+
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === id
+          ? { ...node, data: { ...node.data, params: updatedParams } }
+          : node
+      )
+    );
+  };
+
   // Get icon based on task type
   const getTaskIcon = (taskType: string): React.ReactElement => {
+    const defaultIcon = (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+      </svg>
+    );
+
     const icons: Record<string, React.ReactElement> = {
-      http_get: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-        </svg>
-      ),
+      http_get: defaultIcon,
       validate_csv: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -60,7 +99,7 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
         </svg>
       ),
     };
-    return icons[taskType] || icons.http_get;
+    return icons[taskType] ?? defaultIcon;
   };
 
   // Get color based on task type (neon colors)
@@ -123,14 +162,25 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
 
         {/* Parameters Preview */}
         <div className="mt-2">
-          <div className="text-xs text-purple-400 mb-1 font-medium">Parámetros:</div>
+          <div className="text-xs text-purple-400 mb-1 font-medium">
+            {currentTaskType === 'validate_csv' ? 'Archivo CSV:' : 'Parámetros:'}
+          </div>
           {Object.keys(data.params || {}).length > 0 ? (
-            <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded border border-purple-500/30 text-gray-300 max-h-20 overflow-auto">
-              {JSON.stringify(data.params, null, 2)}
-            </div>
+            currentTaskType === 'validate_csv' && data.params.fileName ? (
+              <div className="text-xs bg-black/40 px-2 py-1 rounded border border-purple-500/30">
+                <div className="text-gray-300">📄 {data.params.fileName}</div>
+                <div className="text-gray-500 text-[10px] mt-0.5">
+                  {(data.params.fileSize / 1024).toFixed(2)} KB
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded border border-purple-500/30 text-gray-300 max-h-20 overflow-auto">
+                {JSON.stringify(data.params, null, 2)}
+              </div>
+            )
           ) : (
             <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded border border-purple-500/30 text-gray-500 italic">
-              Sin parámetros configurados
+              {currentTaskType === 'validate_csv' ? 'Sin archivo adjunto' : 'Sin parámetros configurados'}
             </div>
           )}
         </div>
@@ -206,43 +256,85 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                 ))}
               </select>
             </div>
-            <div>
-              <label className="block text-xs text-purple-400 font-medium mb-1.5">Parámetros (JSON):</label>
-              <textarea
-                value={paramsJson}
-                onChange={(e) => {
+
+            {/* Mostrar campo de archivo CSV si el tipo es validate_csv */}
+            {currentTaskType === 'validate_csv' ? (
+              <div>
+                <label className="block text-xs text-purple-400 font-medium mb-1.5">Archivo CSV:</label>
+                <div className="space-y-2">
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={handleFileChange}
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-purple-500 file:text-white hover:file:bg-purple-600 file:cursor-pointer"
+                  />
+                  {csvFile && (
+                    <div className="text-xs bg-black/40 px-3 py-2 rounded border border-purple-500/30">
+                      <div className="text-purple-300 font-medium">Archivo seleccionado:</div>
+                      <div className="text-gray-300 mt-1">📄 {csvFile.name}</div>
+                      <div className="text-gray-400 text-[10px] mt-1">
+                        Tamaño: {(csvFile.size / 1024).toFixed(2)} KB
+                      </div>
+                    </div>
+                  )}
+                  {data.params?.fileName && !csvFile && (
+                    <div className="text-xs bg-black/40 px-3 py-2 rounded border border-purple-500/30">
+                      <div className="text-purple-300 font-medium">Archivo guardado:</div>
+                      <div className="text-gray-300 mt-1">📄 {data.params.fileName}</div>
+                      <div className="text-gray-400 text-[10px] mt-1">
+                        Tamaño: {(data.params.fileSize / 1024).toFixed(2)} KB
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs text-purple-400 font-medium mb-1.5">Parámetros (JSON):</label>
+                <textarea
+                  value={paramsJson}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    setParamsJson(e.target.value);
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs font-mono focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all min-h-[120px] resize-y"
+                  placeholder='{\n  "key": "value"\n}'
+                />
+              </div>
+            )}
+
+            {/* Botón de guardar solo para tipos que no son validate_csv o después de seleccionar archivo */}
+            {currentTaskType !== 'validate_csv' && (
+              <button
+                type="button"
+                onClick={(e) => {
                   e.stopPropagation();
-                  setParamsJson(e.target.value);
+                  try {
+                    const parsedParams = JSON.parse(paramsJson);
+                    setNodes((nds) =>
+                      nds.map((node) =>
+                        node.id === id
+                          ? { ...node, data: { ...node.data, params: parsedParams } }
+                          : node
+                      )
+                    );
+                    setIsEditing(false);
+                  } catch (error) {
+                    setAlertConfig({
+                      type: 'error',
+                      title: 'JSON Inválido',
+                      message: 'El formato JSON no es válido. Verifica la sintaxis.',
+                    });
+                    setShowAlert(true);
+                  }
                 }}
-                onClick={(e) => e.stopPropagation()}
-                className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs font-mono focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all min-h-[120px] resize-y"
-                placeholder='{\n  "key": "value"\n}'
-              />
-            </div>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                try {
-                  const parsedParams = JSON.parse(paramsJson);
-                  data.params = parsedParams;
-                  setIsEditing(false);
-                } catch (error) {
-                  setAlertConfig({
-                    type: 'error',
-                    title: 'JSON Inválido',
-                    message: 'El formato JSON no es válido. Verifica la sintaxis.',
-                  });
-                  setShowAlert(true);
-                }
-              }}
-              className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-md px-4 py-2 text-sm hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg shadow-cyan-500/20 font-medium"
-            >
-              Guardar Cambios
-            </button>
-            <div className="text-xs text-gray-500 text-center pt-1 border-t border-gray-700/50">
-              Click fuera para cerrar
-            </div>
+                className="w-full bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-md px-4 py-2 text-sm hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg shadow-cyan-500/20 font-medium"
+              >
+                Guardar Cambios
+              </button>
+            )}
           </div>
         </div>
       )}
