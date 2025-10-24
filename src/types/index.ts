@@ -112,13 +112,13 @@ export const taskCommandSchema = z.object({
   run_id: z.string().uuid(),
   node_key: z.string().min(1),
   type: z.string().min(1),
-  params: z.record(z.any()),
+  params: z.record(z.string(), z.unknown()),
 });
 export type TaskCommand = z.infer<typeof taskCommandSchema>;
 
 export const taskResultSchema = z.object({
   status: taskResultStatusSchema,
-  output: z.record(z.any()).nullable(),
+  output: z.record(z.string(), z.unknown()).nullable(),
   error: z.string().nullable(),
 });
 export type TaskResult = z.infer<typeof taskResultSchema>;
