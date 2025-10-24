@@ -169,6 +169,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         />
         <Panel position="top-left" className="flex gap-2">
           <button
+            type="button"
             onClick={addNode}
             className="px-4 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-lg shadow-cyan-500/20 font-medium text-sm flex items-center gap-2"
           >
@@ -178,6 +179,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             Agregar Nodo
           </button>
           <button
+            type="button"
             onClick={deleteSelected}
             className="px-4 py-2 bg-gradient-to-r from-pink-500 to-rose-500 text-white rounded-lg hover:from-pink-600 hover:to-rose-600 transition-all shadow-lg shadow-pink-500/20 font-medium text-sm flex items-center gap-2"
           >

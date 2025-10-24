@@ -13,8 +13,8 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
   const [isEditing, setIsEditing] = useState(false);
 
   // Get icon based on task type
-  const getTaskIcon = (taskType: string): JSX.Element => {
-    const icons: Record<string, JSX.Element> = {
+  const getTaskIcon = (taskType: string): React.ReactElement => {
+    const icons: Record<string, React.ReactElement> = {
       http_get: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
@@ -41,7 +41,7 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
         </svg>
       ),
     };
-    return icons[taskType] || icons.http_get;
+    return icons[taskType] ?? icons.http_get;
   };
 
   // Get color based on task type (neon colors)
@@ -115,7 +115,12 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
 
       {/* Edit Button */}
       <button
-        onClick={() => setIsEditing(!isEditing)}
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          e.preventDefault();
+          setIsEditing(!isEditing);
+        }}
         className="absolute -top-2 -right-2 w-7 h-7 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-full hover:from-cyan-600 hover:to-blue-600 transition-colors shadow-lg shadow-cyan-500/50 flex items-center justify-center text-sm"
         title="Editar nodo"
       >
@@ -131,35 +136,44 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
 
       {/* Edit Modal (simplified - can be expanded) */}
       {isEditing && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-[#1e1e1e] rounded-lg shadow-2xl border border-cyan-500/30 p-4 z-50">
+        <div
+          className="absolute top-full left-0 mt-2 w-64 bg-[#1e1e1e] rounded-lg shadow-2xl border border-cyan-500/30 p-4 z-50"
+          onClick={(e) => e.stopPropagation()}
+        >
           <div className="flex justify-between items-center mb-3">
             <h3 className="text-cyan-400 font-semibold text-sm">Editar Nodo</h3>
             <button
-              onClick={() => setIsEditing(false)}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsEditing(false);
+              }}
               className="text-gray-400 hover:text-cyan-400 transition-colors"
             >
               ✕
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div>
-              <label className="text-xs text-cyan-400 font-medium">Tipo de Tarea:</label>
+              <label className="block text-xs text-cyan-400 font-medium mb-1.5">Tipo de Tarea:</label>
               <select
                 value={data.taskType}
                 onChange={(e) => {
+                  e.stopPropagation();
                   data.taskType = e.target.value;
                   setIsEditing(false);
                 }}
-                className="w-full bg-black/40 text-white border border-cyan-500/30 rounded px-2 py-1 text-sm mt-1 focus:border-cyan-400 focus:outline-none"
+                onClick={(e) => e.stopPropagation()}
+                className="w-full bg-black/60 text-white border border-cyan-500/50 rounded-md px-3 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 focus:outline-none transition-all cursor-pointer hover:bg-black/70 hover:border-cyan-400/70"
               >
                 {data.taskTypes?.map((type) => (
-                  <option key={type.type} value={type.type} className="bg-[#1e1e1e]">
+                  <option key={type.type} value={type.type} className="bg-[#1a1a1a] text-white py-2">
                     {type.display_name}
                   </option>
                 ))}
               </select>
             </div>
-            <div className="text-xs text-gray-500">
+            <div className="text-xs text-gray-500 text-center pt-1 border-t border-gray-700/50">
               Click fuera para cerrar
             </div>
           </div>
