@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { workflowsApi, taskTypesApi } from '../services/api';
 import { Button, Card, Loading, WorkflowCanvas } from '../components';
+import Alert, { AlertType } from '../components/Alert';
+import { optimizeWorkflow } from '../services/aiService';
 import {
   Step,
   Edge,
@@ -48,6 +50,17 @@ const WorkflowEditor: React.FC = () => {
   const [steps, setSteps] = useState<Step[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [optimizing, setOptimizing] = useState<boolean>(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    type: AlertType;
+    title: string;
+    message: string;
+  }>({
+    type: 'info',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     loadTaskTypes();
@@ -214,6 +227,71 @@ const WorkflowEditor: React.FC = () => {
     }
   };
 
+  // Función para optimizar workflow con IA
+  const handleOptimizeWorkflow = async (): Promise<void> => {
+    if (!id) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'Workflow no guardado',
+        message: 'Debes guardar el workflow antes de optimizarlo.',
+      });
+      setShowAlert(true);
+      return;
+    }
+
+    if (steps.length === 0) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'Workflow vacío',
+        message: 'El workflow debe tener al menos un nodo para optimizarlo.',
+      });
+      setShowAlert(true);
+      return;
+    }
+
+    setOptimizing(true);
+
+    try {
+      const result = await optimizeWorkflow(id, steps, edges);
+
+      if (!result.canOptimize) {
+        // Workflow ya está optimizado
+        setAlertConfig({
+          type: 'success',
+          title: 'Workflow Optimizado',
+          message: result.message,
+        });
+        setShowAlert(true);
+      } else {
+        // Aplicar optimizaciones
+        if (result.optimizedSteps) {
+          setSteps(result.optimizedSteps);
+        }
+        if (result.optimizedEdges) {
+          setEdges(result.optimizedEdges);
+        }
+
+        // Mostrar sugerencias
+        const suggestionsText = result.suggestions?.join('\n• ') || '';
+        setAlertConfig({
+          type: 'success',
+          title: 'Optimización Exitosa',
+          message: `${result.message}\n\nMejoras aplicadas:\n• ${suggestionsText}`,
+        });
+        setShowAlert(true);
+      }
+    } catch (error) {
+      setAlertConfig({
+        type: 'error',
+        title: 'Error de Optimización',
+        message: 'Ocurrió un error al intentar optimizar el workflow. Inténtalo de nuevo.',
+      });
+      setShowAlert(true);
+    } finally {
+      setOptimizing(false);
+    }
+  };
+
   if (loading) return <Loading message="Cargando workflow..." />;
 
   return (
@@ -228,16 +306,45 @@ const WorkflowEditor: React.FC = () => {
             {isEditMode ? 'Modifica la configuración de tu workflow' : 'Configura un nuevo flujo de trabajo automatizado'}
           </p>
         </div>
-        <button
-          onClick={() => navigate('/workflows')}
-          className="inline-flex items-center gap-2 px-4 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
-          type="button"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          Cancelar
-        </button>
+        <div className="flex items-center gap-3">
+          {/* Botón de Optimizar con IA */}
+          {isEditMode && (
+            <button
+              onClick={handleOptimizeWorkflow}
+              disabled={optimizing || steps.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-lg shadow-purple-500/20 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+              type="button"
+              title="Optimizar workflow con IA"
+            >
+              {optimizing ? (
+                <>
+                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Optimizando...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  Optimizar con IA
+                </>
+              )}
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/workflows')}
+            className="inline-flex items-center gap-2 px-4 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-lg transition-colors"
+            type="button"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            Cancelar
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -354,6 +461,16 @@ const WorkflowEditor: React.FC = () => {
           </button>
         </div>
       </form>
+
+      {/* Alert Component */}
+      {showAlert && (
+        <Alert
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
     </div>
   );
 };

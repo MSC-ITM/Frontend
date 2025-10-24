@@ -182,6 +182,39 @@ export type AuthResponse = z.infer<typeof authResponseSchema>;
 export type Theme = 'light' | 'dark';
 
 // ============================================
+// AI Module Types
+// ============================================
+
+export const aiActionTypeSchema = z.enum(['optimize', 'repair', 'predict']);
+export type AIActionType = z.infer<typeof aiActionTypeSchema>;
+
+export const aiOptimizationResultSchema = z.object({
+  canOptimize: z.boolean(),
+  message: z.string(),
+  optimizedSteps: z.array(stepSchema).optional(),
+  optimizedEdges: z.array(edgeSchema).optional(),
+  suggestions: z.array(z.string()).optional(),
+});
+export type AIOptimizationResult = z.infer<typeof aiOptimizationResultSchema>;
+
+export const aiRepairResultSchema = z.object({
+  canRepair: z.boolean(),
+  message: z.string(),
+  repairedSteps: z.array(stepSchema).optional(),
+  repairedEdges: z.array(edgeSchema).optional(),
+  fixedIssues: z.array(z.string()).optional(),
+});
+export type AIRepairResult = z.infer<typeof aiRepairResultSchema>;
+
+export const aiPredictionResultSchema = z.object({
+  estimatedDuration: z.number(), // en segundos
+  estimatedSuccessRate: z.number(), // 0-100
+  potentialIssues: z.array(z.string()),
+  recommendations: z.array(z.string()),
+});
+export type AIPredictionResult = z.infer<typeof aiPredictionResultSchema>;
+
+// ============================================
 // Validation Helper Functions
 // ============================================
 

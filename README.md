@@ -176,13 +176,15 @@ npm run test:coverage
 - [x] Implementar autenticación y autorización
 - [x] Modo claro
 - [x] Tests unitarios con Vitest (Sin la API)
+- [x] Agregar validación de schemas de parámetros
+- [ ] Optimizar con IA con datos mockeados
 
 ## 🚀 Próximos Pasos
 
 - [ ] Implementar API backend
 - [ ] Agregar filtros y búsqueda en WorkflowsList
-- [ ] Agregar validación de schemas de parámetros
 - [ ] Validación de DAG (detección de ciclos)
 - [ ] Undo/Redo en el editor visual
 - [ ] Tests unitarios con Vitest para cuando se conecte con la api backend
 - [ ] Tests E2E con Playwright
+- [ ] Optimizar con IA y la API
