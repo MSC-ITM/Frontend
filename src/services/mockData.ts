@@ -24,7 +24,7 @@ import {
 export const mockTaskTypes: TaskType[] = [
   {
     type: 'http_get',
-    display_name: 'HTTP GET Request',
+    display_name: 'Petición HTTP GET',
     version: '1.0.0',
     params_schema: {
       type: 'object',
@@ -37,7 +37,7 @@ export const mockTaskTypes: TaskType[] = [
   },
   {
     type: 'validate_csv',
-    display_name: 'Validate CSV File',
+    display_name: 'Validar Archivo CSV',
     version: '1.0.0',
     params_schema: {
       type: 'object',
@@ -51,7 +51,7 @@ export const mockTaskTypes: TaskType[] = [
   },
   {
     type: 'transform_simple',
-    display_name: 'Simple Transform',
+    display_name: 'Transformación Simple',
     version: '1.0.0',
     params_schema: {
       type: 'object',
@@ -63,7 +63,7 @@ export const mockTaskTypes: TaskType[] = [
   },
   {
     type: 'save_db',
-    display_name: 'Save to Database',
+    display_name: 'Guardar en Base de Datos',
     version: '1.0.0',
     params_schema: {
       type: 'object',
@@ -76,7 +76,7 @@ export const mockTaskTypes: TaskType[] = [
   },
   {
     type: 'notify_mock',
-    display_name: 'Mock Notification',
+    display_name: 'Notificación de Prueba',
     version: '1.0.0',
     params_schema: {
       type: 'object',
