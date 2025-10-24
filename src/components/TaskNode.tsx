@@ -1,5 +1,5 @@
-import React, { memo, useState } from 'react';
-import { Handle, Position, NodeProps } from 'reactflow';
+import React, { memo, useState, useEffect } from 'react';
+import { Handle, Position, NodeProps, useReactFlow } from 'reactflow';
 import { TaskType } from '../types';
 import Alert, { AlertType } from './Alert';
 
@@ -10,8 +10,10 @@ interface TaskNodeData {
   taskTypes?: TaskType[];
 }
 
-const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
+const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => {
+  const { setNodes } = useReactFlow();
   const [isEditing, setIsEditing] = useState(false);
+  const [currentTaskType, setCurrentTaskType] = useState(data.taskType);
   const [paramsJson, setParamsJson] = useState(JSON.stringify(data.params, null, 2));
   const [showAlert, setShowAlert] = useState(false);
   const [alertConfig, setAlertConfig] = useState<{
@@ -23,6 +25,11 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
     title: '',
     message: '',
   });
+
+  // Sincronizar el estado local cuando cambia data.taskType desde afuera
+  useEffect(() => {
+    setCurrentTaskType(data.taskType);
+  }, [data.taskType]);
 
   // Get icon based on task type
   const getTaskIcon = (taskType: string): React.ReactElement => {
@@ -80,13 +87,13 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
     return shadows[taskType] || 'shadow-gray-500/50';
   };
 
-  const taskTypeName = data.taskTypes?.find((t) => t.type === data.taskType)?.display_name || data.taskType;
+  const taskTypeName = data.taskTypes?.find((t) => t.type === currentTaskType)?.display_name || currentTaskType;
 
   return (
     <div
       className={`
         relative bg-[#1e1e1e] rounded-lg shadow-2xl border-2 transition-all duration-200
-        ${selected ? `border-cyan-400 ${getShadowColor(data.taskType)} shadow-xl` : 'border-gray-700/50 hover:border-gray-600'}
+        ${selected ? `border-cyan-400 ${getShadowColor(currentTaskType)} shadow-xl` : 'border-gray-700/50 hover:border-gray-600'}
         min-w-[220px]
       `}
     >
@@ -98,9 +105,9 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
       />
 
       {/* Node Header */}
-      <div className={`bg-gradient-to-r ${getTaskColor(data.taskType)} p-3 rounded-t-lg ${getShadowColor(data.taskType)} shadow-md`}>
+      <div className={`bg-gradient-to-r ${getTaskColor(currentTaskType)} p-3 rounded-t-lg ${getShadowColor(currentTaskType)} shadow-md`}>
         <div className="flex items-center gap-2 text-white">
-          {getTaskIcon(data.taskType)}
+          {getTaskIcon(currentTaskType)}
           <span className="font-semibold text-sm drop-shadow-lg">{taskTypeName}</span>
         </div>
       </div>
@@ -175,10 +182,19 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected }) => {
             <div>
               <label className="block text-xs text-cyan-400 font-medium mb-1.5">Tipo de Tarea:</label>
               <select
-                value={data.taskType}
+                value={currentTaskType}
                 onChange={(e) => {
                   e.stopPropagation();
-                  data.taskType = e.target.value;
+                  const newTaskType = e.target.value;
+                  setCurrentTaskType(newTaskType);
+                  // Actualizar el nodo en React Flow
+                  setNodes((nds) =>
+                    nds.map((node) =>
+                      node.id === id
+                        ? { ...node, data: { ...node.data, taskType: newTaskType } }
+                        : node
+                    )
+                  );
                 }}
                 onClick={(e) => e.stopPropagation()}
                 className="w-full bg-black/60 text-white border border-cyan-500/50 rounded-md px-3 py-2 text-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 focus:outline-none transition-all cursor-pointer hover:bg-black/70 hover:border-cyan-400/70"
