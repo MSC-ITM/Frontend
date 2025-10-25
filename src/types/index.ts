@@ -209,6 +209,7 @@ export type AIRepairResult = z.infer<typeof aiRepairResultSchema>;
 export const aiPredictionResultSchema = z.object({
   estimatedDuration: z.number(), // en segundos
   estimatedSuccessRate: z.number(), // 0-100
+  costLevel: z.enum(['bajo', 'medio', 'alto']),
   potentialIssues: z.array(z.string()),
   recommendations: z.array(z.string()),
 });

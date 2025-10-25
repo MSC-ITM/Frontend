@@ -8,3 +8,5 @@ export { default as WorkflowCanvas } from './WorkflowCanvas';
 export { default as TaskNode } from './TaskNode';
 export { default as ProtectedRoute } from './ProtectedRoute';
 export { default as ConfirmModal } from './ConfirmModal';
+export { default as CostBar } from './CostBar';
+export { default as PredictionModal } from './PredictionModal';

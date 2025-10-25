@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { workflowsApi } from '../services/api';
-import { Loading, StateBadge, ConfirmModal } from '../components';
-import { Workflow, Run } from '../types';
+import { Loading, StateBadge, ConfirmModal, PredictionModal } from '../components';
+import { Workflow, Run, AIPredictionResult } from '../types';
+import { predictWorkflowOutcome } from '../services/aiService';
 
 // ============================================
 // Types & Interfaces
@@ -29,6 +30,10 @@ const WorkflowsList: React.FC = () => {
     workflowId: null,
     workflowName: '',
   });
+  const [showPredictionModal, setShowPredictionModal] = useState<boolean>(false);
+  const [prediction, setPrediction] = useState<AIPredictionResult | null>(null);
+  const [predicting, setPredicting] = useState<boolean>(false);
+  const [workflowToRun, setWorkflowToRun] = useState<string | null>(null);
 
   useEffect(() => {
     loadWorkflows();
@@ -75,12 +80,53 @@ const WorkflowsList: React.FC = () => {
 
   const handleRunNow = async (id: string): Promise<void> => {
     try {
-      const run: Run = await workflowsApi.runNow(id);
+      // Guardar ID del workflow a ejecutar
+      setWorkflowToRun(id);
+
+      // Obtener detalles del workflow para predecir
+      const workflowDetail = await workflowsApi.getById(id);
+
+      // Mostrar modal de predicción y empezar a predecir
+      setShowPredictionModal(true);
+      setPredicting(true);
+
+      // Llamar a la IA para predecir
+      const predictionResult = await predictWorkflowOutcome(
+        id,
+        workflowDetail.steps,
+        workflowDetail.edges
+      );
+
+      setPrediction(predictionResult);
+      setPredicting(false);
+    } catch (err) {
+      alert('Error al predecir el workflow');
+      console.error('Error predicting workflow:', err);
+      setShowPredictionModal(false);
+      setPredicting(false);
+    }
+  };
+
+  const handleConfirmExecution = async (): Promise<void> => {
+    if (!workflowToRun) return;
+
+    try {
+      const run: Run = await workflowsApi.runNow(workflowToRun);
+      setShowPredictionModal(false);
+      setPrediction(null);
+      setWorkflowToRun(null);
       navigate(`/runs/${run.id}`);
     } catch (err) {
-      alert('Failed to start workflow');
+      alert('Error al ejecutar el workflow');
       console.error('Error starting workflow:', err);
     }
+  };
+
+  const handleCancelExecution = (): void => {
+    setShowPredictionModal(false);
+    setPrediction(null);
+    setWorkflowToRun(null);
+    setPredicting(false);
   };
 
   if (loading) return <Loading message="Loading workflows..." />;
@@ -244,6 +290,15 @@ const WorkflowsList: React.FC = () => {
         confirmText="Eliminar"
         cancelText="Cancelar"
         type="danger"
+      />
+
+      {/* Modal de predicción con IA */}
+      <PredictionModal
+        isOpen={showPredictionModal}
+        onClose={handleCancelExecution}
+        onConfirm={handleConfirmExecution}
+        prediction={prediction}
+        loading={predicting}
       />
     </div>
   );

@@ -281,35 +281,102 @@ export async function predictWorkflowOutcome(
   steps: Step[],
   edges: Edge[]
 ): Promise<AIPredictionResult> {
-  // Simular delay de procesamiento de IA
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Simular delay de procesamiento de IA (1.5 segundos)
+  await new Promise((resolve) => setTimeout(resolve, 1500));
+
+  // Analizar tipos de tareas y sus costos
+  const taskCosts = {
+    http_get: { time: 5, cost: 'bajo' as const },
+    validate_csv: { time: 10, cost: 'medio' as const },
+    transform_simple: { time: 15, cost: 'medio' as const },
+    save_db: { time: 8, cost: 'alto' as const },
+    notify_mock: { time: 2, cost: 'bajo' as const },
+  };
 
   // Calcular métricas basadas en el workflow
   const stepCount = steps.length;
   const hasHttpRequests = steps.some((s) => s.type === 'http_get');
   const hasValidation = steps.some((s) => s.type === 'validate_csv');
+  const hasTransform = steps.some((s) => s.type === 'transform_simple');
+  const hasDatabase = steps.some((s) => s.type === 'save_db');
 
-  // Estimar duración (base 5 segundos por paso)
-  const estimatedDuration = stepCount * 5 + (hasHttpRequests ? 10 : 0);
+  // Estimar duración total
+  let estimatedDuration = 0;
+  const costPoints = { bajo: 1, medio: 3, alto: 5 };
+  let totalCostPoints = 0;
+
+  steps.forEach((step) => {
+    const taskType = step.type as keyof typeof taskCosts;
+    const cost = taskCosts[taskType] || { time: 5, cost: 'bajo' as const };
+    estimatedDuration += cost.time;
+    totalCostPoints += costPoints[cost.cost];
+
+    // Analizar parámetros para ajustar estimación
+    if (step.type === 'validate_csv' && step.params.file_path) {
+      estimatedDuration += 5; // Archivos grandes toman más tiempo
+    }
+    if (step.type === 'http_get' && step.params.timeout) {
+      estimatedDuration += 2; // Timeout configurado indica operación lenta
+    }
+  });
+
+  // Determinar nivel de costo
+  const avgCostPoints = totalCostPoints / stepCount;
+  let costLevel: 'bajo' | 'medio' | 'alto';
+  if (avgCostPoints <= 2) {
+    costLevel = 'bajo';
+  } else if (avgCostPoints <= 4) {
+    costLevel = 'medio';
+  } else {
+    costLevel = 'alto';
+  }
 
   // Estimar tasa de éxito
   let successRate = 95;
-  if (!hasValidation) successRate -= 10;
-  if (stepCount > 10) successRate -= 5;
+  if (!hasValidation && hasTransform) successRate -= 15; // Sin validación es riesgoso
+  if (stepCount > 10) successRate -= 10; // Workflows muy largos son más propensos a fallos
+  if (hasHttpRequests) successRate -= 5; // HTTP puede fallar
+  if (hasDatabase) successRate -= 5; // DB puede tener problemas de conexión
+
+  // Generar problemas potenciales
+  const potentialIssues: string[] = [];
+  if (hasHttpRequests) {
+    potentialIssues.push('Peticiones HTTP pueden fallar por timeout o errores de red');
+  }
+  if (stepCount > 5) {
+    potentialIssues.push(`Workflow con ${stepCount} pasos - Mayor complejidad = mayor riesgo`);
+  }
+  if (!hasValidation && (hasTransform || hasDatabase)) {
+    potentialIssues.push('Sin validación de datos antes de transformar/guardar');
+  }
+  if (hasDatabase) {
+    potentialIssues.push('Operaciones de base de datos pueden ser lentas con grandes volúmenes');
+  }
+
+  // Generar recomendaciones
+  const recommendations: string[] = [];
+  if (hasHttpRequests) {
+    recommendations.push('Configurar timeout y reintentos para peticiones HTTP');
+  }
+  if (!hasValidation) {
+    recommendations.push('Agregar validación de datos al inicio del workflow');
+  }
+  if (stepCount > 7) {
+    recommendations.push('Considerar dividir en sub-workflows para mejor mantenibilidad');
+  }
+  if (hasDatabase && !hasValidation) {
+    recommendations.push('Validar datos antes de insertar en base de datos');
+  }
+  if (costLevel === 'alto') {
+    recommendations.push('Optimizar operaciones costosas o ejecutar en horarios de baja demanda');
+  }
 
   return {
     estimatedDuration,
-    estimatedSuccessRate: successRate,
-    potentialIssues: [
-      hasHttpRequests ? 'Las peticiones HTTP pueden fallar por timeout' : null,
-      stepCount > 5 ? 'Workflow complejo puede requerir más tiempo' : null,
-      !hasValidation ? 'Sin validación de datos puede causar errores' : null,
-    ].filter(Boolean) as string[],
-    recommendations: [
-      'Agregar manejo de errores en pasos críticos',
-      'Configurar reintentos para operaciones de red',
-      hasValidation ? null : 'Considerar agregar validación de datos',
-    ].filter(Boolean) as string[],
+    estimatedSuccessRate: Math.max(successRate, 60), // Mínimo 60%
+    costLevel,
+    potentialIssues,
+    recommendations,
   };
 }
 
