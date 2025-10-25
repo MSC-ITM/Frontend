@@ -35,6 +35,10 @@ const WorkflowsList: React.FC = () => {
   const [predicting, setPredicting] = useState<boolean>(false);
   const [workflowToRun, setWorkflowToRun] = useState<string | null>(null);
 
+  // Estados para búsqueda y filtros
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'inactive'>('all');
+
   useEffect(() => {
     loadWorkflows();
   }, []);
@@ -129,6 +133,27 @@ const WorkflowsList: React.FC = () => {
     setPredicting(false);
   };
 
+  // Función para filtrar workflows según búsqueda y filtros
+  const getFilteredWorkflows = (): Workflow[] => {
+    return workflows.filter((workflow) => {
+      // Filtro de búsqueda
+      const matchesSearch =
+        searchTerm === '' ||
+        workflow.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        workflow.description.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Filtro de estado
+      const matchesStatus =
+        filterStatus === 'all' ||
+        (filterStatus === 'active' && workflow.active) ||
+        (filterStatus === 'inactive' && !workflow.active);
+
+      return matchesSearch && matchesStatus;
+    });
+  };
+
+  const filteredWorkflows = getFilteredWorkflows();
+
   if (loading) return <Loading message="Loading workflows..." />;
 
   return (
@@ -164,6 +189,86 @@ const WorkflowsList: React.FC = () => {
         </div>
       )}
 
+      {/* Barra de búsqueda y filtros */}
+      {workflows.length > 0 && (
+        <div className="bg-[#1a1a1a] border border-cyan-500/20 rounded-xl shadow-lg shadow-cyan-500/5 p-4">
+          <div className="flex flex-col sm:flex-row gap-4">
+            {/* Campo de búsqueda */}
+            <div className="flex-1 relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="Buscar por nombre o descripción..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 bg-black/40 border border-cyan-500/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent transition-all"
+              />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-300"
+                  type="button"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Filtros por estado */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => setFilterStatus('all')}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
+                  filterStatus === 'all'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/30'
+                    : 'bg-black/40 text-gray-400 border border-cyan-500/20 hover:border-cyan-500/40 hover:text-gray-300'
+                }`}
+                type="button"
+              >
+                Todos ({workflows.length})
+              </button>
+              <button
+                onClick={() => setFilterStatus('active')}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
+                  filterStatus === 'active'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/30'
+                    : 'bg-black/40 text-gray-400 border border-emerald-500/20 hover:border-emerald-500/40 hover:text-gray-300'
+                }`}
+                type="button"
+              >
+                Activos ({workflows.filter(w => w.active).length})
+              </button>
+              <button
+                onClick={() => setFilterStatus('inactive')}
+                className={`px-4 py-2.5 rounded-lg font-medium transition-all ${
+                  filterStatus === 'inactive'
+                    ? 'bg-gradient-to-r from-gray-500 to-gray-600 text-white shadow-lg shadow-gray-500/30'
+                    : 'bg-black/40 text-gray-400 border border-gray-500/20 hover:border-gray-500/40 hover:text-gray-300'
+                }`}
+                type="button"
+              >
+                Inactivos ({workflows.filter(w => !w.active).length})
+              </button>
+            </div>
+          </div>
+
+          {/* Contador de resultados */}
+          {(searchTerm || filterStatus !== 'all') && (
+            <div className="mt-3 pt-3 border-t border-cyan-500/10">
+              <p className="text-sm text-gray-400">
+                Mostrando <span className="font-semibold text-cyan-400">{filteredWorkflows.length}</span> de <span className="font-semibold text-gray-300">{workflows.length}</span> workflows
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
       {workflows.length === 0 ? (
         <div className="bg-[#1a1a1a] border border-cyan-500/20 rounded-2xl shadow-xl shadow-cyan-500/5 p-12 text-center">
           <div className="max-w-sm mx-auto">
@@ -186,9 +291,36 @@ const WorkflowsList: React.FC = () => {
             </button>
           </div>
         </div>
+      ) : filteredWorkflows.length === 0 ? (
+        <div className="bg-[#1a1a1a] border border-cyan-500/20 rounded-2xl shadow-xl shadow-cyan-500/5 p-12 text-center">
+          <div className="max-w-sm mx-auto">
+            <div className="w-16 h-16 bg-gradient-to-br from-yellow-500/20 to-orange-500/20 border border-yellow-500/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-semibold text-yellow-400 mb-2">No se encontraron resultados</h3>
+            <p className="text-gray-400 mb-6">
+              {searchTerm ? `No hay workflows que coincidan con "${searchTerm}"` : 'No hay workflows con este filtro'}
+            </p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setFilterStatus('all');
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all font-medium shadow-lg shadow-cyan-500/20"
+              type="button"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Limpiar Filtros
+            </button>
+          </div>
+        </div>
       ) : (
         <div className="grid gap-4">
-          {workflows.map((workflow) => (
+          {filteredWorkflows.map((workflow) => (
             <div
               key={workflow.id}
               className="bg-[#1a1a1a] rounded-xl border border-cyan-500/20 hover:border-cyan-400/50 hover:shadow-xl hover:shadow-cyan-500/10 transition-all duration-200 overflow-hidden group"
