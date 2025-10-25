@@ -26,6 +26,10 @@ interface WorkflowCanvasProps {
   taskTypes?: TaskType[];
   onNodesChange?: (steps: Omit<Step, 'id' | 'workflow_id'>[]) => void;
   onEdgesChange?: (edges: Omit<Edge, 'id' | 'workflow_id'>[]) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
@@ -34,6 +38,10 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   taskTypes = [],
   onNodesChange,
   onEdgesChange,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }) => {
   // Convert steps to React Flow nodes
   const convertStepsToNodes = (steps: Step[]): Node[] => {
@@ -69,6 +77,25 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     convertToReactFlowEdges(initialEdges)
   );
 
+  // Sincronizar con cambios externos (undo/redo)
+  useEffect(() => {
+    const newNodes = convertStepsToNodes(initialSteps);
+    // Solo actualizar si hay cambios reales
+    if (JSON.stringify(nodes.map(n => n.id).sort()) !== JSON.stringify(newNodes.map(n => n.id).sort())) {
+      isExternalUpdate.current = true;
+      setNodes(newNodes);
+    }
+  }, [initialSteps]);
+
+  useEffect(() => {
+    const newEdges = convertToReactFlowEdges(initialEdges);
+    // Solo actualizar si hay cambios reales
+    if (JSON.stringify(edges.map(e => e.id).sort()) !== JSON.stringify(newEdges.map(e => e.id).sort())) {
+      isExternalUpdate.current = true;
+      setEdges(newEdges);
+    }
+  }, [initialEdges]);
+
   // Handle edge connections
   const onConnect: OnConnect = useCallback(
     (params) => {
@@ -84,9 +111,12 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [setEdges]
   );
 
+  // Track if changes are from external source (undo/redo) vs internal
+  const isExternalUpdate = React.useRef(false);
+
   // Notify parent component of changes (with debounce to avoid infinite loops)
   useEffect(() => {
-    if (onNodesChange && nodes.length > 0) {
+    if (onNodesChange && nodes.length > 0 && !isExternalUpdate.current) {
       const timer = setTimeout(() => {
         const steps = nodes.map((node) => ({
           node_key: node.id,
@@ -94,13 +124,14 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           params: node.data.params || {},
         }));
         onNodesChange(steps);
-      }, 100);
+      }, 300);
       return () => clearTimeout(timer);
     }
+    isExternalUpdate.current = false;
   }, [nodes, onNodesChange]);
 
   useEffect(() => {
-    if (onEdgesChange && edges.length > 0) {
+    if (onEdgesChange && edges.length >= 0 && !isExternalUpdate.current) {
       const timer = setTimeout(() => {
         const workflowEdges = edges.map((edge) => ({
           id: edge.id,
@@ -108,9 +139,10 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
           to_node_key: edge.target,
         }));
         onEdgesChange(workflowEdges);
-      }, 100);
+      }, 300);
       return () => clearTimeout(timer);
     }
+    isExternalUpdate.current = false;
   }, [edges, onEdgesChange]);
 
   // Add new node
@@ -189,14 +221,46 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
             Eliminar
           </button>
         </Panel>
-        <Panel position="top-right" className="bg-gray-900/90 backdrop-blur-sm border border-cyan-500/30 rounded-lg px-4 py-2">
-          <div className="text-cyan-100 text-sm">
-            <div className="font-semibold text-cyan-400">Controles:</div>
-            <div className="text-xs text-gray-300 mt-1">
-              • Click para seleccionar<br/>
-              • Arrastra para mover<br/>
-              • Conecta los puntos para crear flujos<br/>
-              • Scroll para zoom
+        <Panel position="top-right" className="flex flex-col gap-2">
+          {/* Botones Undo/Redo */}
+          <div className="flex items-center gap-1 border border-cyan-500/20 rounded-lg p-1 bg-gray-900/90 backdrop-blur-sm">
+            <button
+              onClick={onUndo}
+              disabled={!canUndo}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              type="button"
+              title="Deshacer (Ctrl+Z)"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+              </svg>
+              <span className="text-sm font-medium">Deshacer</span>
+            </button>
+            <div className="w-px h-6 bg-cyan-500/20"></div>
+            <button
+              onClick={onRedo}
+              disabled={!canRedo}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-cyan-400 hover:text-cyan-300 hover:bg-cyan-500/10 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              type="button"
+              title="Rehacer (Ctrl+Shift+Z o Ctrl+Y)"
+            >
+              <span className="text-sm font-medium">Rehacer</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Instrucciones */}
+          <div className="bg-gray-900/90 backdrop-blur-sm border border-cyan-500/30 rounded-lg px-4 py-2">
+            <div className="text-cyan-100 text-sm">
+              <div className="font-semibold text-cyan-400">Controles:</div>
+              <div className="text-xs text-gray-300 mt-1">
+                • Click para seleccionar<br/>
+                • Arrastra para mover<br/>
+                • Conecta los puntos para crear flujos<br/>
+                • Scroll para zoom
+              </div>
             </div>
           </div>
         </Panel>

@@ -5,13 +5,16 @@ Frontend del Sistema de Orquestación de Flujos de Trabajo basado en IA, desarro
 ## ✨ Características Principales
 
 - **Editor Visual Interactivo**: Diseñador de workflows tipo n8n con drag & drop de nodos
+- **Undo/Redo**: Funcionalidad completa para deshacer y rehacer cambios en el editor visual
 - **Gestión de Workflows**: Crear, editar, eliminar y listar workflows
+- **Búsqueda y Filtros**: Sistema de búsqueda en tiempo real y filtros por estado
 - **Conectividad Visual**: Conecta nodos arrastrando puntos de conexión para crear flujos
 - **Monitoreo en Tiempo Real**: Vista detallada del estado de ejecución con auto-refresh
 - **Visualización de Logs**: Panel de logs filtrable por tarea con niveles de color
 - **Gestión de Tareas**: Soporte para múltiples tipos de tareas configurables
 - **Estados Visuales**: Badges translúcidos con colores neón para estados
 - **Progreso Visual**: Barras de progreso con gradientes y efectos de brillo
+- **IA Integrada**: Optimización, reparación y predicción de workflows con IA (mockups)
 
 ## 🛠️ Tecnologías
 
@@ -35,18 +38,26 @@ src/
 │   ├── Loading.jsx         # Spinner de carga con glow
 │   ├── WorkflowCanvas.jsx  # Canvas visual para diseñar workflows
 │   ├── TaskNode.jsx        # Nodo personalizado para el canvas
+│   ├── Alert.jsx           # Componente de alertas
+│   ├── ConfirmModal.jsx    # Modal de confirmación
+│   ├── PredictionModal.jsx # Modal de predicción con IA
+│   ├── CostBar.jsx         # Barra de costos (bajo/medio/alto)
 │   └── index.js            # Exportaciones
 ├── pages/                  # Páginas principales
-│   ├── WorkflowsList.jsx   # Lista de workflows (cards)
-│   ├── WorkflowEditor.jsx  # Editor visual de workflows
-│   ├── RunDetail.jsx       # Detalle de ejecución
+│   ├── WorkflowsList.jsx   # Lista de workflows con búsqueda y filtros
+│   ├── WorkflowEditor.jsx  # Editor visual con undo/redo
+│   ├── RunDetail.jsx       # Detalle de ejecución con reparación IA
+│   ├── Login.jsx           # Página de login
 │   └── index.js
 ├── services/               # Servicios y APIs
 │   ├── api.js             # Cliente API con axios
+│   ├── aiService.ts       # Servicios de IA (optimizar, reparar, predecir)
 │   ├── mockData.js        # Datos de prueba
 │   └── mockApi.js         # API simulada
-├── types/                 # Definiciones de tipos (JSDoc)
-│   └── index.js
+├── hooks/                  # Custom React Hooks
+│   └── useHistory.ts      # Hook para undo/redo
+├── types/                 # Definiciones de tipos TypeScript
+│   └── index.ts
 ├── App.jsx                # Componente principal con rutas
 ├── main.jsx               # Entry point
 └── index.css             # Estilos globales y Tailwind
@@ -181,12 +192,11 @@ npm run test:coverage
 - [x] Reparar con IA con datos mockeados
 - [x] Predecir con IA con datos mockeados
 - [x] Agregar filtros y búsqueda en WorkflowsList
+- [x] **Undo/Redo en el editor visual** con atajos de teclado (Ctrl+Z / Ctrl+Shift+Z)
 
 ## 🚀 Próximos Pasos
 
 - [ ] Implementar API backend
-- [ ] Validación de DAG (detección de ciclos)
-- [ ] Undo/Redo en el editor visual
 - [ ] Tests unitarios con Vitest para cuando se conecte con la api backend
 - [ ] Tests E2E con Playwright
 - [ ] Optimizar con IA y la API

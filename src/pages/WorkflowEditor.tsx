@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { workflowsApi, taskTypesApi } from '../services/api';
 import { Button, Card, Loading, WorkflowCanvas } from '../components';
 import Alert, { AlertType } from '../components/Alert';
 import { optimizeWorkflow } from '../services/aiService';
+import { useHistory } from '../hooks/useHistory';
 import {
   Step,
   Edge,
@@ -30,6 +31,11 @@ interface RouteParams {
   id?: string;
 }
 
+interface WorkflowState {
+  steps: Step[];
+  edges: Edge[];
+}
+
 // ============================================
 // Component
 // ============================================
@@ -47,8 +53,6 @@ const WorkflowEditor: React.FC = () => {
     schedule_cron: '',
     active: true,
   });
-  const [steps, setSteps] = useState<Step[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [optimizing, setOptimizing] = useState<boolean>(false);
   const [showAlert, setShowAlert] = useState(false);
@@ -61,6 +65,23 @@ const WorkflowEditor: React.FC = () => {
     title: '',
     message: '',
   });
+
+  // Undo/Redo state management
+  const {
+    state: workflowState,
+    setState: setWorkflowState,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    reset: resetHistory,
+  } = useHistory<WorkflowState>({
+    steps: [],
+    edges: [],
+  });
+
+  const steps = workflowState.steps;
+  const edges = workflowState.edges;
 
   useEffect(() => {
     loadTaskTypes();
@@ -90,8 +111,11 @@ const WorkflowEditor: React.FC = () => {
         schedule_cron: data.workflow.schedule_cron || '',
         active: data.workflow.active,
       });
-      setSteps(data.steps || []);
-      setEdges(data.edges || []);
+      // Reiniciar historial al cargar workflow
+      resetHistory({
+        steps: data.steps || [],
+        edges: data.edges || [],
+      });
     } catch (err) {
       setError('Error al cargar el workflow');
       console.error('Error loading workflow:', err);
@@ -158,6 +182,37 @@ const WorkflowEditor: React.FC = () => {
     }
   };
 
+  // Wrapper functions para actualizar steps y edges con historial
+  const updateSteps = useCallback(
+    (newSteps: Step[]) => {
+      setWorkflowState({
+        steps: newSteps,
+        edges: edges,
+      });
+    },
+    [edges, setWorkflowState]
+  );
+
+  const updateEdges = useCallback(
+    (newEdges: Edge[]) => {
+      setWorkflowState({
+        steps: steps,
+        edges: newEdges,
+      });
+    },
+    [steps, setWorkflowState]
+  );
+
+  const updateBoth = useCallback(
+    (newSteps: Step[], newEdges: Edge[]) => {
+      setWorkflowState({
+        steps: newSteps,
+        edges: newEdges,
+      });
+    },
+    [setWorkflowState]
+  );
+
   const addStep = (): void => {
     const newStep: Step = {
       id: `step_${Date.now()}`,
@@ -166,24 +221,24 @@ const WorkflowEditor: React.FC = () => {
       type: taskTypes[0]?.type || '',
       params: {},
     };
-    setSteps([...steps, newStep]);
+    updateSteps([...steps, newStep]);
   };
 
   const removeStep = (stepId: string): void => {
-    setSteps(steps.filter((s) => s.id !== stepId));
+    const newSteps = steps.filter((s) => s.id !== stepId);
     // Remove edges connected to this step
     const stepToRemove = steps.find((s) => s.id === stepId);
+    let newEdges = edges;
     if (stepToRemove) {
-      setEdges(
-        edges.filter(
-          (e) => e.from_node_key !== stepToRemove.node_key && e.to_node_key !== stepToRemove.node_key
-        )
+      newEdges = edges.filter(
+        (e) => e.from_node_key !== stepToRemove.node_key && e.to_node_key !== stepToRemove.node_key
       );
     }
+    updateBoth(newSteps, newEdges);
   };
 
   const updateStep = (stepId: string, field: keyof Step, value: any): void => {
-    setSteps(steps.map((s) => (s.id === stepId ? { ...s, [field]: value } : s)));
+    updateSteps(steps.map((s) => (s.id === stepId ? { ...s, [field]: value } : s)));
   };
 
   const addEdge = (): void => {
@@ -197,15 +252,15 @@ const WorkflowEditor: React.FC = () => {
       from_node_key: steps[0].node_key,
       to_node_key: steps[1]?.node_key || steps[0].node_key,
     };
-    setEdges([...edges, newEdge]);
+    updateEdges([...edges, newEdge]);
   };
 
   const removeEdge = (edgeId: string): void => {
-    setEdges(edges.filter((e) => e.id !== edgeId));
+    updateEdges(edges.filter((e) => e.id !== edgeId));
   };
 
   const updateEdge = (edgeId: string, field: keyof Edge, value: any): void => {
-    setEdges(edges.map((e) => (e.id === edgeId ? { ...e, [field]: value } : e)));
+    updateEdges(edges.map((e) => (e.id === edgeId ? { ...e, [field]: value } : e)));
   };
 
   const handleFormChange = (
@@ -264,11 +319,12 @@ const WorkflowEditor: React.FC = () => {
         setShowAlert(true);
       } else {
         // Aplicar optimizaciones
-        if (result.optimizedSteps) {
-          setSteps(result.optimizedSteps);
-        }
-        if (result.optimizedEdges) {
-          setEdges(result.optimizedEdges);
+        if (result.optimizedSteps && result.optimizedEdges) {
+          updateBoth(result.optimizedSteps, result.optimizedEdges);
+        } else if (result.optimizedSteps) {
+          updateSteps(result.optimizedSteps);
+        } else if (result.optimizedEdges) {
+          updateEdges(result.optimizedEdges);
         }
 
         // Mostrar sugerencias
@@ -291,6 +347,33 @@ const WorkflowEditor: React.FC = () => {
       setOptimizing(false);
     }
   };
+
+  // Keyboard shortcuts para Undo/Redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Z o Cmd+Z para Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        if (canUndo) {
+          undo();
+        }
+      }
+      // Ctrl+Shift+Z o Cmd+Shift+Z para Redo
+      // También Ctrl+Y o Cmd+Y como alternativa
+      if (
+        ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') ||
+        ((e.ctrlKey || e.metaKey) && e.key === 'y')
+      ) {
+        e.preventDefault();
+        if (canRedo) {
+          redo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, canRedo, undo, redo]);
 
   if (loading) return <Loading message="Cargando workflow..." />;
 
@@ -437,8 +520,31 @@ const WorkflowEditor: React.FC = () => {
             initialSteps={steps}
             initialEdges={edges}
             taskTypes={taskTypes}
-            onNodesChange={(updatedSteps: Step[]) => setSteps(updatedSteps)}
-            onEdgesChange={(updatedEdges: Edge[]) => setEdges(updatedEdges)}
+            onNodesChange={(updatedSteps) => {
+              // Convertir de Omit<Step> a Step[]
+              const fullSteps: Step[] = updatedSteps.map((s, index) => ({
+                id: steps[index]?.id || `step_${Date.now()}_${index}`,
+                workflow_id: id || 'temp',
+                node_key: s.node_key,
+                type: s.type,
+                params: s.params,
+              }));
+              updateSteps(fullSteps);
+            }}
+            onEdgesChange={(updatedEdges) => {
+              // Convertir de Omit<Edge> a Edge[]
+              const fullEdges: Edge[] = updatedEdges.map((e, index) => ({
+                id: e.id || `edge_${Date.now()}_${index}`,
+                workflow_id: id || 'temp',
+                from_node_key: e.from_node_key,
+                to_node_key: e.to_node_key,
+              }));
+              updateEdges(fullEdges);
+            }}
+            onUndo={undo}
+            onRedo={redo}
+            canUndo={canUndo}
+            canRedo={canRedo}
           />
         </div>
 

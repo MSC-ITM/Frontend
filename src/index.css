@@ -389,3 +389,24 @@
   border-color: rgba(100, 116, 139, 0.7) !important;
   color: #334155 !important;
 }
+
+/* Botones de Undo/Redo en modo claro */
+.light-mode .text-cyan-400 {
+  color: #0891b2 !important;
+}
+
+.light-mode .text-cyan-300 {
+  color: #06b6d4 !important;
+}
+
+.light-mode .border-cyan-500\/20 {
+  border-color: rgba(6, 182, 212, 0.3) !important;
+}
+
+.light-mode .bg-black\/20 {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+.light-mode .bg-cyan-500\/10:hover {
+  background: rgba(6, 182, 212, 0.15) !important;
+}
