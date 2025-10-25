@@ -115,6 +115,14 @@ export const mockWorkflows: Workflow[] = [
     active: false,
     created_at: '2025-10-14T08:15:00Z',
   },
+  {
+    id: 'wf_004',
+    name: '🔴 DEMO: Workflow con Error para Reparar',
+    description: '⚠️ Workflow de prueba con ejecución fallida - Click en "Ver Ejecuciones" y selecciona la ejecución FAILED',
+    schedule_cron: null,
+    active: true,
+    created_at: '2025-10-25T02:00:00Z',
+  },
 ];
 
 // Steps for workflows
@@ -206,6 +214,48 @@ export const mockSteps: Record<string, Step[]> = {
       },
     },
   ],
+  wf_004: [
+    {
+      id: 'step_009',
+      workflow_id: 'wf_004',
+      node_key: 'fetch_external_api',
+      type: 'http_get',
+      params: {
+        url: 'https://api.slow-endpoint.com/data',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    },
+    {
+      id: 'step_010',
+      workflow_id: 'wf_004',
+      node_key: 'validate_csv_file',
+      type: 'validate_csv',
+      params: {
+        file_path: '/uploads/data.csv',
+        columns: ['id', 'name', 'email', 'status'],
+        delimiter: ',',
+      },
+    },
+    {
+      id: 'step_011',
+      workflow_id: 'wf_004',
+      node_key: 'transform_records',
+      type: 'transform_simple',
+      params: {
+        operations: ['uppercase name', 'validate email'],
+      },
+    },
+    {
+      id: 'step_012',
+      workflow_id: 'wf_004',
+      node_key: 'save_results',
+      type: 'save_db',
+      params: {
+        table: 'integration_results',
+        mode: 'overwrite',
+      },
+    },
+  ],
 };
 
 // Edges for workflows
@@ -245,6 +295,26 @@ export const mockEdges: Record<string, Edge[]> = {
     },
   ],
   wf_003: [],
+  wf_004: [
+    {
+      id: 'edge_006',
+      workflow_id: 'wf_004',
+      from_node_key: 'fetch_external_api',
+      to_node_key: 'validate_csv_file',
+    },
+    {
+      id: 'edge_007',
+      workflow_id: 'wf_004',
+      from_node_key: 'validate_csv_file',
+      to_node_key: 'transform_records',
+    },
+    {
+      id: 'edge_008',
+      workflow_id: 'wf_004',
+      from_node_key: 'transform_records',
+      to_node_key: 'save_results',
+    },
+  ],
 };
 
 // Runs
@@ -276,6 +346,13 @@ export const mockRuns: Run[] = [
     state: 'Pending',
     started_at: null,
     finished_at: null,
+  },
+  {
+    id: 'run_005',
+    workflow_id: 'wf_004',
+    state: 'Failed',
+    started_at: '2025-10-25T02:00:00Z',
+    finished_at: '2025-10-25T02:02:15Z',
   },
 ];
 
@@ -432,6 +509,56 @@ export const mockTaskInstances: Record<string, TaskInstance[]> = {
     },
   ],
   run_004: [],
+  run_005: [
+    {
+      id: 'task_013',
+      run_id: 'run_005',
+      node_key: 'fetch_external_api',
+      type: 'http_get',
+      state: 'Succeeded',
+      try_count: 1,
+      max_retries: 3,
+      started_at: '2025-10-25T02:00:00Z',
+      finished_at: '2025-10-25T02:00:45Z',
+      error: null,
+    },
+    {
+      id: 'task_014',
+      run_id: 'run_005',
+      node_key: 'validate_csv_file',
+      type: 'validate_csv',
+      state: 'Failed',
+      try_count: 2,
+      max_retries: 3,
+      started_at: '2025-10-25T02:00:46Z',
+      finished_at: '2025-10-25T02:01:30Z',
+      error: 'CSV validation failed: 15% of rows contain invalid data. Strict mode requires 100% valid rows.',
+    },
+    {
+      id: 'task_015',
+      run_id: 'run_005',
+      node_key: 'transform_records',
+      type: 'transform_simple',
+      state: 'Pending',
+      try_count: 0,
+      max_retries: 3,
+      started_at: null,
+      finished_at: null,
+      error: null,
+    },
+    {
+      id: 'task_016',
+      run_id: 'run_005',
+      node_key: 'save_results',
+      type: 'save_db',
+      state: 'Pending',
+      try_count: 0,
+      max_retries: 3,
+      started_at: null,
+      finished_at: null,
+      error: null,
+    },
+  ],
 };
 
 // Logs
@@ -635,15 +762,89 @@ export const mockLogs: Record<string, LogEntry[]> = {
     },
   ],
   run_004: [],
+  run_005: [
+    {
+      id: 'log_025',
+      run_id: 'run_005',
+      task_instance_id: 'task_013',
+      level: 'INFO',
+      message: 'Starting HTTP GET request to https://api.slow-endpoint.com/data',
+      ts: '2025-10-25T02:00:00Z',
+    },
+    {
+      id: 'log_026',
+      run_id: 'run_005',
+      task_instance_id: 'task_013',
+      level: 'INFO',
+      message: 'HTTP request completed successfully (200 OK)',
+      ts: '2025-10-25T02:00:45Z',
+    },
+    {
+      id: 'log_027',
+      run_id: 'run_005',
+      task_instance_id: 'task_014',
+      level: 'INFO',
+      message: 'Starting CSV validation for file /uploads/data.csv',
+      ts: '2025-10-25T02:00:46Z',
+    },
+    {
+      id: 'log_028',
+      run_id: 'run_005',
+      task_instance_id: 'task_014',
+      level: 'INFO',
+      message: 'Reading CSV file with delimiter ","',
+      ts: '2025-10-25T02:00:48Z',
+    },
+    {
+      id: 'log_029',
+      run_id: 'run_005',
+      task_instance_id: 'task_014',
+      level: 'WARNING',
+      message: 'Found 150 invalid rows out of 1000 total rows (15%)',
+      ts: '2025-10-25T02:01:10Z',
+    },
+    {
+      id: 'log_030',
+      run_id: 'run_005',
+      task_instance_id: 'task_014',
+      level: 'ERROR',
+      message: 'Invalid data detected in columns: email (12%), status (3%)',
+      ts: '2025-10-25T02:01:15Z',
+    },
+    {
+      id: 'log_031',
+      run_id: 'run_005',
+      task_instance_id: 'task_014',
+      level: 'WARNING',
+      message: 'Retrying validation with relaxed constraints (attempt 2/3)',
+      ts: '2025-10-25T02:01:20Z',
+    },
+    {
+      id: 'log_032',
+      run_id: 'run_005',
+      task_instance_id: 'task_014',
+      level: 'ERROR',
+      message: 'CSV validation failed: 15% of rows contain invalid data. Strict mode requires 100% valid rows.',
+      ts: '2025-10-25T02:01:30Z',
+    },
+    {
+      id: 'log_033',
+      run_id: 'run_005',
+      task_instance_id: null,
+      level: 'ERROR',
+      message: 'Workflow failed at node "validate_csv_file": validation errors exceed threshold',
+      ts: '2025-10-25T02:02:15Z',
+    },
+  ],
 };
 
 // Helper to generate IDs
-let nextWorkflowId = 4;
-let nextStepId = 9;
-let nextEdgeId = 6;
-let nextRunId = 5;
-let nextTaskId = 13;
-let nextLogId = 25;
+let nextWorkflowId = 5;
+let nextStepId = 13;
+let nextEdgeId = 9;
+let nextRunId = 6;
+let nextTaskId = 17;
+let nextLogId = 34;
 
 type IdPrefix = 'wf' | 'step' | 'edge' | 'run' | 'task' | 'log';
 

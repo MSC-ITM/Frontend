@@ -11,6 +11,7 @@ interface ConfirmModalProps {
   confirmText?: string;
   cancelText?: string;
   type?: ModalType;
+  children?: React.ReactNode;
 }
 
 const ConfirmModal: React.FC<ConfirmModalProps> = ({
@@ -21,7 +22,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   message,
   confirmText = 'Confirmar',
   cancelText = 'Cancelar',
-  type = 'danger'
+  type = 'danger',
+  children
 }) => {
   // Cerrar modal con tecla ESC
   useEffect(() => {
@@ -112,6 +114,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <p className="text-sm text-gray-300 text-center mb-6">
               {message}
             </p>
+
+            {/* Children (optional additional content) */}
+            {children && <div className="mb-6">{children}</div>}
 
             {/* Actions */}
             <div className="flex gap-3">

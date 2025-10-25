@@ -182,6 +182,19 @@ const WorkflowsList: React.FC = () => {
 
                   {/* Right: Actions */}
                   <div className="flex items-center gap-2">
+                    {/* Special button for demo workflow wf_004 */}
+                    {workflow.id === 'wf_004' && (
+                      <button
+                        onClick={() => navigate('/runs/run_005')}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-rose-500 to-red-500 text-white rounded-lg hover:from-rose-600 hover:to-red-600 transition-all shadow-lg shadow-rose-500/20 font-medium text-sm animate-pulse"
+                        type="button"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        Ver Ejecución Fallida
+                      </button>
+                    )}
                     <button
                       onClick={() => handleRunNow(workflow.id)}
                       className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-lg hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/20 font-medium text-sm"

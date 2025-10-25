@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { runsApi } from '../services/api';
+import { runsApi, workflowsApi } from '../services/api';
 import { Button, Card, Loading, StateBadge, ProgressBar, ConfirmModal } from '../components';
+import Alert, { AlertType } from '../components/Alert';
+import { repairWorkflow } from '../services/aiService';
 import { Run, TaskInstance, LogEntry, LogLevel, RunState } from '../types';
 
 // ============================================
@@ -29,6 +31,19 @@ const RunDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [autoRefresh, setAutoRefresh] = useState<boolean>(true);
   const [cancelModal, setCancelModal] = useState<boolean>(false);
+  const [repairing, setRepairing] = useState<boolean>(false);
+  const [showRepairModal, setShowRepairModal] = useState<boolean>(false);
+  const [repairSuggestions, setRepairSuggestions] = useState<string[]>([]);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    type: AlertType;
+    title: string;
+    message: string;
+  }>({
+    type: 'info',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     if (runId) {
@@ -131,6 +146,114 @@ const RunDetail: React.FC = () => {
     setAutoRefresh(e.target.checked);
   };
 
+  // Función para iniciar reparación con IA
+  const handleRepairRequest = async (): Promise<void> => {
+    if (!run || !runId) return;
+
+    // Encontrar el nodo que falló
+    const failedTask = tasks.find((t) => t.state === 'Failed');
+    if (!failedTask) {
+      setAlertConfig({
+        type: 'warning',
+        title: 'Sin Errores',
+        message: 'No se encontraron tareas con errores para reparar.',
+      });
+      setShowAlert(true);
+      return;
+    }
+
+    setRepairing(true);
+
+    try {
+      // Obtener el workflow completo
+      const workflowDetail = await workflowsApi.getById(run.workflow_id);
+
+      // Llamar a la IA para reparar
+      const result = await repairWorkflow(
+        run.workflow_id,
+        workflowDetail.steps,
+        workflowDetail.edges,
+        failedTask.node_key
+      );
+
+      if (result.canRepair && result.repairedSteps) {
+        // Guardar sugerencias y mostrar modal de confirmación
+        setRepairSuggestions(result.fixedIssues || []);
+        setShowRepairModal(true);
+
+        // Guardar los pasos reparados temporalmente
+        (window as any).__repairedWorkflow = {
+          steps: result.repairedSteps,
+          edges: result.repairedEdges,
+          message: result.message,
+        };
+      } else {
+        setAlertConfig({
+          type: 'error',
+          title: 'No se Puede Reparar',
+          message: result.message,
+        });
+        setShowAlert(true);
+      }
+    } catch (error) {
+      setAlertConfig({
+        type: 'error',
+        title: 'Error de Reparación',
+        message: 'Ocurrió un error al intentar reparar el workflow.',
+      });
+      setShowAlert(true);
+    } finally {
+      setRepairing(false);
+    }
+  };
+
+  // Función para aceptar la reparación y aplicar cambios
+  const handleAcceptRepair = async (): Promise<void> => {
+    if (!run) return;
+
+    const repairedData = (window as any).__repairedWorkflow;
+    if (!repairedData) return;
+
+    setShowRepairModal(false);
+
+    try {
+      // Actualizar el workflow con los cambios reparados
+      await workflowsApi.update(run.workflow_id, {
+        steps: repairedData.steps,
+        edges: repairedData.edges || [],
+      });
+
+      // Mostrar confirmación y navegar al editor
+      setAlertConfig({
+        type: 'success',
+        title: 'Reparación Aplicada',
+        message: `${repairedData.message}\n\nLos cambios se han guardado. Puedes ejecutar el workflow nuevamente.`,
+      });
+      setShowAlert(true);
+
+      // Limpiar datos temporales
+      delete (window as any).__repairedWorkflow;
+
+      // Opcional: navegar al editor después de 2 segundos
+      setTimeout(() => {
+        navigate(`/workflows/${run.workflow_id}/edit`);
+      }, 2000);
+    } catch (error) {
+      setAlertConfig({
+        type: 'error',
+        title: 'Error al Aplicar',
+        message: 'No se pudieron aplicar los cambios de reparación.',
+      });
+      setShowAlert(true);
+    }
+  };
+
+  // Función para rechazar la reparación
+  const handleRejectRepair = (): void => {
+    setShowRepairModal(false);
+    delete (window as any).__repairedWorkflow;
+  };
+
   if (loading) return <Loading message="Cargando detalles de ejecución..." />;
 
   if (!run) {
@@ -173,6 +296,33 @@ const RunDetail: React.FC = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
               Cancelar Ejecución
+            </button>
+          )}
+          {run.state === 'Failed' && (
+            <button
+              onClick={handleRepairRequest}
+              disabled={repairing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-orange-500 to-amber-500 text-white rounded-lg hover:from-orange-600 hover:to-amber-600 transition-all shadow-lg shadow-orange-500/20 font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              type="button"
+              title="Reparar workflow con IA"
+            >
+              {repairing ? (
+                <>
+                  <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Reparando...
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Reparar con IA
+                </>
+              )}
             </button>
           )}
           <button
@@ -355,6 +505,38 @@ const RunDetail: React.FC = () => {
         cancelText="Volver"
         type="warning"
       />
+
+      {/* Modal de confirmación para reparación con IA */}
+      {showRepairModal && (
+        <ConfirmModal
+          isOpen={showRepairModal}
+          onClose={handleRejectRepair}
+          onConfirm={handleAcceptRepair}
+          title="Reparación Sugerida por IA"
+          message="Se encontraron los siguientes problemas y soluciones:"
+          confirmText="Aplicar Reparación"
+          cancelText="Rechazar"
+          type="info"
+        >
+          <div className="mt-4 bg-cyan-950/30 border border-cyan-500/20 rounded-lg p-4">
+            <ul className="list-disc pl-5 space-y-2 text-cyan-100">
+              {repairSuggestions.map((suggestion, i) => (
+                <li key={i} className="text-sm">{suggestion}</li>
+              ))}
+            </ul>
+          </div>
+        </ConfirmModal>
+      )}
+
+      {/* Alert Component */}
+      {showAlert && (
+        <Alert
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setShowAlert(false)}
+        />
+      )}
     </div>
   );
 };

@@ -132,23 +132,140 @@ export async function optimizeWorkflow(
  * @param workflowId ID del workflow
  * @param steps Pasos actuales del workflow
  * @param edges Conexiones actuales del workflow
- * @param errors Errores detectados en el workflow
+ * @param failedNodeKey Clave del nodo que falló
  * @returns Resultado de la reparación
  */
 export async function repairWorkflow(
   workflowId: string,
   steps: Step[],
   edges: Edge[],
-  errors: string[]
+  failedNodeKey: string
 ): Promise<AIRepairResult> {
-  // Simular delay de procesamiento de IA
+  // Simular delay de procesamiento de IA (2 segundos)
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
-  // TODO: Implementar lógica de reparación en el futuro
+  // Encontrar el paso que falló
+  const failedStep = steps.find((s) => s.node_key === failedNodeKey);
+
+  if (!failedStep) {
+    return {
+      canRepair: false,
+      message: 'No se pudo identificar el nodo con error.',
+      fixedIssues: [],
+    };
+  }
+
+  // Generar reparaciones basadas en el tipo de tarea
+  const repairedSteps = steps.map((step) => {
+    if (step.node_key !== failedNodeKey) return step;
+
+    // Reparaciones específicas por tipo de tarea
+    switch (step.type) {
+      case 'http_get':
+        return {
+          ...step,
+          params: {
+            ...step.params,
+            timeout: 10000, // Aumentar timeout
+            retries: 5, // Más reintentos
+            retryDelay: 1000, // Delay entre reintentos
+            fallbackUrl: step.params.url + '/backup', // URL de respaldo
+          },
+        };
+
+      case 'validate_csv':
+        return {
+          ...step,
+          params: {
+            ...step.params,
+            skipInvalidRows: true, // Omitir filas inválidas
+            strictMode: false, // Modo menos estricto
+            errorTolerance: 0.1, // Tolerar 10% de errores
+          },
+        };
+
+      case 'transform_simple':
+        return {
+          ...step,
+          params: {
+            ...step.params,
+            ignoreErrors: true, // Ignorar errores de transformación
+            defaultValues: true, // Usar valores por defecto
+          },
+        };
+
+      case 'save_db':
+        return {
+          ...step,
+          params: {
+            ...step.params,
+            mode: 'append', // Cambiar a modo append en vez de replace
+            createIfNotExists: true, // Crear tabla si no existe
+            onConflict: 'ignore', // Ignorar conflictos
+          },
+        };
+
+      case 'notify_mock':
+        return {
+          ...step,
+          params: {
+            ...step.params,
+            retryOnFailure: true,
+            maxRetries: 3,
+          },
+        };
+
+      default:
+        return step;
+    }
+  });
+
+  // Generar lista de problemas resueltos
+  const fixedIssues: string[] = [];
+  const stepType = failedStep.type;
+
+  switch (stepType) {
+    case 'http_get':
+      fixedIssues.push(
+        'Timeout aumentado de 5s a 10s para peticiones lentas',
+        'Reintentos aumentados a 5 con delay de 1s entre cada intento',
+        'URL de respaldo agregada para redundancia'
+      );
+      break;
+    case 'validate_csv':
+      fixedIssues.push(
+        'Modo de validación cambiado a menos estricto',
+        'Configurado para omitir filas inválidas',
+        'Tolerancia de error establecida en 10%'
+      );
+      break;
+    case 'transform_simple':
+      fixedIssues.push(
+        'Configurado para ignorar errores de transformación',
+        'Valores por defecto habilitados para campos faltantes'
+      );
+      break;
+    case 'save_db':
+      fixedIssues.push(
+        'Modo cambiado a "append" para evitar sobrescritura',
+        'Configurado para crear tabla si no existe',
+        'Conflictos configurados para ser ignorados'
+      );
+      break;
+    case 'notify_mock':
+      fixedIssues.push(
+        'Reintentos automáticos habilitados',
+        'Máximo de 3 reintentos configurados'
+      );
+      break;
+  }
+
   return {
     canRepair: true,
-    message: 'Análisis de reparación completado (funcionalidad pendiente).',
-    fixedIssues: [],
+    message: `Se identificaron y corrigieron ${fixedIssues.length} problemas en el nodo "${failedNodeKey}".`,
+    repairedSteps,
+    repairedEdges: edges,
+    fixedIssues,
   };
 }
 
