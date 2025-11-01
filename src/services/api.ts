@@ -21,7 +21,7 @@ import * as mockApis from './mockApi';
 
 // Configure base URL - update this when backend is deployed
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true' || true; // Set to true to use mock data
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // Read from .env
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -30,7 +30,21 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Add request interceptor for error handling
+// Add request interceptor to attach auth token
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -92,15 +106,19 @@ const realWorkflowsApi: WorkflowsApi = {
   },
 
   create: async (data: CreateWorkflowDTO) => {
-    const response = await apiClient.post<Workflow>('/workflows', data);
-    // Validate response data
-    return validateOrThrow(workflowSchema, response.data);
+    const response = await apiClient.post<WorkflowDetailDTO>('/workflows', data);
+    // Validate response data - Backend returns WorkflowDetailDTO
+    const workflowDetail = validateOrThrow(workflowDetailDTOSchema, response.data);
+    // Return just the workflow object for consistency with other API methods
+    return workflowDetail.workflow;
   },
 
   update: async (id: string, data: Partial<CreateWorkflowDTO>) => {
-    const response = await apiClient.put<Workflow>(`/workflows/${id}`, data);
-    // Validate response data
-    return validateOrThrow(workflowSchema, response.data);
+    const response = await apiClient.put<WorkflowDetailDTO>(`/workflows/${id}`, data);
+    // Validate response data - Backend returns WorkflowDetailDTO
+    const workflowDetail = validateOrThrow(workflowDetailDTOSchema, response.data);
+    // Return just the workflow object for consistency with other API methods
+    return workflowDetail.workflow;
   },
 
   delete: async (id: string) => {

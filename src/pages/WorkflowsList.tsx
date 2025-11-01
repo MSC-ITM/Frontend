@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { workflowsApi } from '../services/api';
 import { Loading, StateBadge, ConfirmModal, PredictionModal } from '../components';
+import Alert, { AlertType } from '../components/Alert';
 import { Workflow, Run, AIPredictionResult } from '../types';
 import { predictWorkflowOutcome } from '../services/aiService';
 
@@ -34,6 +35,16 @@ const WorkflowsList: React.FC = () => {
   const [prediction, setPrediction] = useState<AIPredictionResult | null>(null);
   const [predicting, setPredicting] = useState<boolean>(false);
   const [workflowToRun, setWorkflowToRun] = useState<string | null>(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertConfig, setAlertConfig] = useState<{
+    type: AlertType;
+    title: string;
+    message: string;
+  }>({
+    type: 'info',
+    title: '',
+    message: '',
+  });
 
   // Estados para búsqueda y filtros
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -115,13 +126,24 @@ const WorkflowsList: React.FC = () => {
     if (!workflowToRun) return;
 
     try {
-      const run: Run = await workflowsApi.runNow(workflowToRun);
+      const run = await workflowsApi.runNow(workflowToRun);
       setShowPredictionModal(false);
       setPrediction(null);
       setWorkflowToRun(null);
+
+      // Navigate directly to the run detail page
+      // The run detail page will handle polling for Worker updates
       navigate(`/runs/${run.id}`);
     } catch (err) {
-      alert('Error al ejecutar el workflow');
+      setShowPredictionModal(false);
+      setPrediction(null);
+      setWorkflowToRun(null);
+      setAlertConfig({
+        type: 'error',
+        title: 'Error al ejecutar workflow',
+        message: 'No se pudo iniciar la ejecución del workflow. Por favor, verifica que el Backend esté funcionando correctamente.',
+      });
+      setShowAlert(true);
       console.error('Error starting workflow:', err);
     }
   };
@@ -187,6 +209,16 @@ const WorkflowsList: React.FC = () => {
           </svg>
           <div>{error}</div>
         </div>
+      )}
+
+      {/* Alert component for errors */}
+      {showAlert && (
+        <Alert
+          type={alertConfig.type}
+          title={alertConfig.title}
+          message={alertConfig.message}
+          onClose={() => setShowAlert(false)}
+        />
       )}
 
       {/* Barra de búsqueda y filtros */}

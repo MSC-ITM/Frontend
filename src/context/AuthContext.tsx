@@ -81,36 +81,60 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } as LoginError;
     }
 
-    // Mock de autenticación - en producción esto llamaría al backend
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        // Usuario mock - admin/admin123
-        if (username === 'admin' && password === 'admin123') {
-          const userData: User = {
-            id: '1',
-            username: 'admin',
-            name: 'Administrador',
-            email: 'admin@workflow.com',
-            role: 'admin',
-            initials: 'AD',
-          };
+    try {
+      // Llamar al Backend API para login
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
 
-          setUser(userData);
-          localStorage.setItem('user', JSON.stringify(userData));
-          resolve({ success: true, user: userData });
-        } else {
-          reject({
-            success: false,
-            message: 'Usuario o contraseña incorrectos',
-          } as LoginError);
-        }
-      }, 800); // Simular delay de red
-    });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw {
+          success: false,
+          message: errorData.detail || 'Usuario o contraseña incorrectos',
+        } as LoginError;
+      }
+
+      const data = await response.json();
+
+      // Crear objeto User desde la respuesta del backend
+      const userData: User = {
+        id: data.user.id,
+        username: username,
+        name: data.user.name,
+        email: `${username}@workflow.com`,
+        role: 'admin',
+        initials: username.substring(0, 2).toUpperCase(),
+      };
+
+      // Guardar token y usuario
+      localStorage.setItem('token', data.access_token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+
+      return { success: true, user: userData };
+    } catch (error) {
+      // Si es un error de Login, re-lanzarlo
+      if ((error as LoginError).success === false) {
+        throw error;
+      }
+      // Error de red u otro
+      throw {
+        success: false,
+        message: 'Error de conexión con el servidor',
+      } as LoginError;
+    }
   };
 
   const logout = (): void => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const isAuthenticated = (): boolean => {
