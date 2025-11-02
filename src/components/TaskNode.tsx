@@ -172,6 +172,15 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                   </div>
                 )}
               </div>
+            ) : currentTaskType === 'save_db' && data.params.db_path ? (
+              <div className="text-xs bg-black/40 px-2 py-1 rounded border border-purple-500/30">
+                <div className="text-gray-300">
+                  📄 SQL → 🗄️ SQLite DB
+                </div>
+                <div className="text-gray-500 text-[10px] mt-0.5">
+                  BD: {data.params.db_path}
+                </div>
+              </div>
             ) : (
               <div className="text-xs font-mono bg-black/40 px-2 py-1 rounded border border-purple-500/30 text-gray-300 max-h-20 overflow-auto">
                 {JSON.stringify(data.params, null, 2)}
@@ -359,6 +368,101 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                   </div>
                 </div>
               </div>
+            ) : currentTaskType === 'save_db' ? (
+              <div className="space-y-3">
+                <div className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-1.5 rounded border border-cyan-500/30 mb-2">
+                  ℹ️ Este nodo ejecuta archivos SQL generados por transform_simple
+                </div>
+                <div>
+                  <label className="block text-xs text-purple-400 font-medium mb-1.5">Ruta de la Base de Datos:</label>
+                  <input
+                    type="text"
+                    value={data.params?.db_path || 'data/output.db'}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setNodes((nds) =>
+                        nds.map((node) =>
+                          node.id === id
+                            ? { ...node, data: { ...node.data, params: { ...node.data.params, db_path: e.target.value } } }
+                            : node
+                        )
+                      );
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    placeholder="data/output.db"
+                    className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all"
+                  />
+                  <div className="text-[10px] text-gray-500 mt-1 italic">
+                    💡 La base de datos SQLite donde se guardarán los datos
+                  </div>
+                </div>
+              </div>
+            ) : currentTaskType === 'http_get' ? (
+              <div className="space-y-3">
+                <div className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-1.5 rounded border border-cyan-500/30 mb-2">
+                  ℹ️ Este nodo realiza una petición HTTP GET
+                </div>
+                <div>
+                  <label className="block text-xs text-purple-400 font-medium mb-1.5">URL:</label>
+                  <input
+                    type="text"
+                    value={data.params?.url || ''}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setNodes((nds) =>
+                        nds.map((node) =>
+                          node.id === id
+                            ? { ...node, data: { ...node.data, params: { ...node.data.params, url: e.target.value } } }
+                            : node
+                        )
+                      );
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    placeholder="https://api.example.com/data"
+                    className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all"
+                  />
+                  <div className="text-[10px] text-gray-500 mt-1 italic">
+                    💡 URL completa del endpoint a consultar
+                  </div>
+                </div>
+              </div>
+            ) : currentTaskType === 'notify_mock' ? (
+              <div className="space-y-3">
+                <div className="text-[10px] text-cyan-400 bg-cyan-500/10 px-2 py-1.5 rounded border border-cyan-500/30 mb-2">
+                  ℹ️ Este nodo envía una notificación de escritorio
+                </div>
+                <div>
+                  <label className="block text-xs text-purple-400 font-medium mb-1.5">Mensaje:</label>
+                  <textarea
+                    value={data.params?.message || ''}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      setNodes((nds) =>
+                        nds.map((node) =>
+                          node.id === id
+                            ? {
+                                ...node,
+                                data: {
+                                  ...node.data,
+                                  params: {
+                                    channel: 'desknotification',
+                                    message: e.target.value
+                                  }
+                                }
+                              }
+                            : node
+                        )
+                      );
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    placeholder="Workflow ejecutado correctamente!"
+                    className="w-full bg-black/60 text-white border border-purple-500/50 rounded-md px-3 py-2 text-xs focus:border-purple-400 focus:ring-2 focus:ring-purple-400/20 focus:outline-none transition-all min-h-[80px] resize-y"
+                  />
+                  <div className="text-[10px] text-gray-500 mt-1 italic">
+                    💡 Mensaje que se mostrará en la notificación de escritorio
+                  </div>
+                </div>
+              </div>
             ) : (
               <div>
                 <label className="block text-xs text-purple-400 font-medium mb-1.5">Parámetros (JSON):</label>
@@ -464,6 +568,71 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                       }
 
                       // Todo válido, cerrar el modal
+                      setIsEditing(false);
+                    } else if (currentTaskType === 'http_get') {
+                      // Para http_get, validar que URL esté presente
+                      if (!data.params?.url || data.params.url.trim() === '') {
+                        setAlertConfig({
+                          type: 'error',
+                          title: 'URL Requerida',
+                          message: 'Por favor ingresa la URL del endpoint a consultar.',
+                        });
+                        setShowAlert(true);
+                        return;
+                      }
+
+                      // Validar que la URL tenga formato correcto
+                      try {
+                        new URL(data.params.url);
+                      } catch {
+                        setAlertConfig({
+                          type: 'error',
+                          title: 'URL Inválida',
+                          message: 'Por favor ingresa una URL válida (ej: https://api.example.com/data).',
+                        });
+                        setShowAlert(true);
+                        return;
+                      }
+
+                      // Construir el formato JSON que espera el worker
+                      const workerParams = {
+                        url: data.params.url
+                      };
+
+                      setNodes((nds) =>
+                        nds.map((node) =>
+                          node.id === id
+                            ? { ...node, data: { ...node.data, params: workerParams } }
+                            : node
+                        )
+                      );
+                      setIsEditing(false);
+                    } else if (currentTaskType === 'notify_mock') {
+                      // Para notify_mock, validar que mensaje esté presente
+                      if (!data.params?.message || data.params.message.trim() === '') {
+                        setAlertConfig({
+                          type: 'error',
+                          title: 'Mensaje Requerido',
+                          message: 'Por favor ingresa el mensaje de la notificación.',
+                        });
+                        setShowAlert(true);
+                        return;
+                      }
+
+                      // El formato JSON ya está construido por el onChange
+                      // Solo verificar que channel esté presente
+                      const workerParams = {
+                        channel: 'desknotification',
+                        message: data.params.message
+                      };
+
+                      setNodes((nds) =>
+                        nds.map((node) =>
+                          node.id === id
+                            ? { ...node, data: { ...node.data, params: workerParams } }
+                            : node
+                        )
+                      );
                       setIsEditing(false);
                     } else {
                       // Para otros tipos de nodos, parsear JSON normal
