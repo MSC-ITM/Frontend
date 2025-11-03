@@ -173,6 +173,28 @@ npm run test:run
 npm run test:coverage
 ```
 
+# 🎭 Testing E2E con Playwright
+
+## Configuración
+
+El proyecto está configurado con **Playwright** para pruebas end-to-end de la integración con IA.
+
+## Comandos Disponibles
+
+```bash
+# Ejecutar tests E2E (recomendado)
+npm run test:e2e
+
+# Ejecutar tests con interfaz visual
+npm run test:e2e:ui
+
+# Ejecutar tests viendo el navegador
+npm run test:e2e:headed
+
+# Ejecutar tests en modo debug
+npm run test:e2e:debug
+```
+
 ## ✅ Características Implementadas
 
 - [x] **Editor visual de workflows** con React Flow (tipo n8n)
@@ -193,12 +215,9 @@ npm run test:coverage
 - [x] Predecir con IA con datos mockeados
 - [x] Agregar filtros y búsqueda en WorkflowsList
 - [x] **Undo/Redo en el editor visual** con atajos de teclado (Ctrl+Z / Ctrl+Shift+Z)
-
-## 🚀 Próximos Pasos
-
-- [ ] Implementar API backend
-- [ ] Tests unitarios con Vitest para cuando se conecte con la api backend
-- [ ] Tests E2E con Playwright
-- [ ] Optimizar con IA y la API
-- [ ] Reparar con IA y la API
-- [ ] Predecir con IA y la API
+- [X] Implementar API backend
+- [X] Tests unitarios con Vitest para cuando se conecte con la api backend
+- [X] Tests E2E con Playwright
+- [X] Optimizar con IA y la API
+- [X] Reparar con IA y la API
+- [X] Predecir con IA y la API
