@@ -5,16 +5,15 @@ import {
   AIRepairResult,
   AIPredictionResult,
 } from '../types';
+import apiClient from './api';
 
 /**
- * Servicio mock de IA para optimización, reparación y predicción de workflows
+ * Servicio de IA que conecta con el backend (Google Gemini)
+ * Todas las funciones ahora usan IA real en lugar de mocks
  */
 
-// Contador de optimizaciones por workflow (para simular límite de optimizaciones)
-const optimizationCount = new Map<string, number>();
-
 /**
- * Simula la optimización de un workflow mediante IA
+ * Optimiza un workflow usando IA real (Google Gemini)
  * @param workflowId ID del workflow
  * @param steps Pasos actuales del workflow
  * @param edges Conexiones actuales del workflow
@@ -25,110 +24,127 @@ export async function optimizeWorkflow(
   steps: Step[],
   edges: Edge[]
 ): Promise<AIOptimizationResult> {
-  // Simular delay de procesamiento de IA (1-2 segundos)
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    // Llamar al endpoint de sugerencias de IA
+    const response = await apiClient.post('/ia/suggestion', {
+      name: workflowId,
+      definition: {
+        nodes: steps.map((step) => ({
+          id: step.node_key,
+          type: step.type,
+          params: step.params || {},
+          depends_on: edges
+            .filter(e => e.to_node_key === step.node_key)
+            .map(e => e.from_node_key)
+        }))
+      }
+    });
 
-  const currentOptimizations = optimizationCount.get(workflowId) || 0;
+    const data = response.data;
 
-  // Caso 1: Workflow ya está optimizado al máximo (después de 2 optimizaciones)
-  if (currentOptimizations >= 2) {
+    // Si no hay sugerencias, el workflow ya está optimizado
+    if (!data.suggestions || data.suggestions.length === 0) {
+      return {
+        canOptimize: false,
+        message: data.rationale || 'El workflow ya está optimizado. No se detectaron mejoras adicionales.',
+        suggestions: [data.rationale || 'El workflow tiene una estructura óptima']
+      };
+    }
+
+    // Aplicar sugerencias de la IA a los steps
+    console.log('[AI] Suggestions received:', data.suggestions);
+    const optimizedSteps = applySuggestions(steps, data.suggestions);
+    console.log('[AI] Original steps:', steps);
+    console.log('[AI] Optimized steps:', optimizedSteps);
+
+    return {
+      canOptimize: true,
+      message: data.rationale || 'Workflow optimizado exitosamente usando IA.',
+      optimizedSteps,
+      optimizedEdges: edges,
+      suggestions: data.suggestions.map((s: any) =>
+        s.message || s.reason || 'Optimización aplicada'
+      )
+    };
+  } catch (error) {
+    console.error('Error calling AI optimization:', error);
+
+    // Fallback: devolver mensaje indicando que la IA no está disponible
     return {
       canOptimize: false,
-      message: 'El workflow ya está completamente optimizado. No se detectaron mejoras adicionales.',
+      message: 'No se pudo conectar con el servicio de IA. Verifica que el backend esté ejecutándose.',
       suggestions: [
-        'El workflow tiene una estructura óptima',
-        'Los nodos están organizados de manera eficiente',
-        'No se encontraron pasos redundantes',
-      ],
+        'El backend debe estar corriendo en http://localhost:8000',
+        'Verifica que la variable IA_PROVIDER esté configurada en el .env del backend',
+        'Revisa los logs del backend para más información'
+      ]
     };
   }
-
-  // Caso 2: Primera optimización
-  if (currentOptimizations === 0) {
-    optimizationCount.set(workflowId, 1);
-
-    // Simular mejoras: eliminar pasos redundantes y optimizar orden
-    const optimizedSteps = steps.map((step, index) => {
-      // Optimizar parámetros de HTTP GET
-      if (step.type === 'http_get') {
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            timeout: 5000,
-            retries: 3,
-            cacheEnabled: true,
-          },
-        };
-      }
-      // Optimizar parámetros de validación CSV
-      if (step.type === 'validate_csv') {
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            parallelValidation: true,
-            batchSize: 1000,
-          },
-        };
-      }
-      return step;
-    });
-
-    return {
-      canOptimize: true,
-      message: 'Workflow optimizado exitosamente. Se agregaron configuraciones de rendimiento.',
-      optimizedSteps,
-      optimizedEdges: edges,
-      suggestions: [
-        'Se agregaron parámetros de timeout y reintentos a las peticiones HTTP',
-        'Se habilitó caché para peticiones HTTP',
-        'Se habilitó procesamiento paralelo en validación CSV',
-        'Se configuró procesamiento por lotes para mejor rendimiento',
-      ],
-    };
-  }
-
-  // Caso 3: Segunda optimización
-  if (currentOptimizations === 1) {
-    optimizationCount.set(workflowId, 2);
-
-    // Reorganizar pasos para mejor eficiencia
-    const optimizedSteps = [...steps].sort((a, b) => {
-      // Priorizar HTTP GET primero, luego validaciones, luego transformaciones
-      const priority: Record<string, number> = {
-        http_get: 1,
-        validate_csv: 2,
-        transform_simple: 3,
-        save_db: 4,
-        notify_mock: 5,
-      };
-      return (priority[a.type] || 999) - (priority[b.type] || 999);
-    });
-
-    return {
-      canOptimize: true,
-      message: 'Workflow reorganizado para mejor eficiencia de ejecución.',
-      optimizedSteps,
-      optimizedEdges: edges,
-      suggestions: [
-        'Los pasos fueron reordenados para optimizar el flujo de datos',
-        'Las tareas de red se ejecutan al inicio para minimizar tiempos de espera',
-        'Las validaciones se realizan antes de las transformaciones',
-        'Las notificaciones se ejecutan al final del proceso',
-      ],
-    };
-  }
-
-  // Caso por defecto (no debería llegar aquí)
-  return {
-    canOptimize: false,
-    message: 'No se pudieron aplicar más optimizaciones.',
-  };
 }
 
 /**
- * Simula la reparación de un workflow con errores mediante IA
+ * Aplica las sugerencias de IA a los steps del workflow
+ */
+function applySuggestions(steps: Step[], suggestions: any[]): Step[] {
+  const updatedSteps = [...steps];
+
+  suggestions.forEach(suggestion => {
+    // Manejar sugerencias del backend (formato: kind, path, detail)
+    if (suggestion.kind === 'parameter_set' && suggestion.detail) {
+      // Buscar el step por índice desde el path (ej: "steps[0]")
+      const targetIndex = parseInt(suggestion.path?.match(/\d+/)?.[0] || '-1');
+      if (targetIndex >= 0 && targetIndex < updatedSteps.length) {
+        updatedSteps[targetIndex] = {
+          ...updatedSteps[targetIndex],
+          params: {
+            ...updatedSteps[targetIndex].params,
+            ...suggestion.detail
+          }
+        };
+      }
+    }
+    // Manejar sugerencias de add_arg (agregar parámetro)
+    else if (suggestion.kind === 'add_arg' && suggestion.detail) {
+      const targetIndex = parseInt(suggestion.path?.match(/\d+/)?.[0] || '-1');
+      if (targetIndex >= 0 && targetIndex < updatedSteps.length && suggestion.detail.arg_name) {
+        // Limpiar arg_name por si viene con "params." como prefijo
+        const cleanArgName = suggestion.detail.arg_name.replace(/^params\./, '');
+
+        updatedSteps[targetIndex] = {
+          ...updatedSteps[targetIndex],
+          params: {
+            ...updatedSteps[targetIndex].params,
+            [cleanArgName]: suggestion.detail.arg_value
+          }
+        };
+        console.log(`[AI] Added parameter "${cleanArgName}" = "${suggestion.detail.arg_value}" to step ${targetIndex}`);
+      }
+    }
+    // Manejar sugerencias de modify_arg (modificar parámetro)
+    else if (suggestion.kind === 'modify_arg' && suggestion.detail) {
+      const targetIndex = parseInt(suggestion.path?.match(/\d+/)?.[0] || '-1');
+      if (targetIndex >= 0 && targetIndex < updatedSteps.length && suggestion.detail.arg_name) {
+        // Limpiar arg_name por si viene con "params." como prefijo
+        const cleanArgName = suggestion.detail.arg_name.replace(/^params\./, '');
+
+        updatedSteps[targetIndex] = {
+          ...updatedSteps[targetIndex],
+          params: {
+            ...updatedSteps[targetIndex].params,
+            [cleanArgName]: suggestion.detail.arg_value
+          }
+        };
+        console.log(`[AI] Modified parameter "${cleanArgName}" = "${suggestion.detail.arg_value}" in step ${targetIndex}`);
+      }
+    }
+    // Ignorar add_node y reorder por ahora (requieren lógica más compleja)
+  });
+
+  return updatedSteps;
+}
+
+/**
+ * Repara un workflow con errores usando IA real (Google Gemini)
  * @param workflowId ID del workflow
  * @param steps Pasos actuales del workflow
  * @param edges Conexiones actuales del workflow
@@ -139,138 +155,113 @@ export async function repairWorkflow(
   workflowId: string,
   steps: Step[],
   edges: Edge[],
-  failedNodeKey: string
+  failedNodeKey: string,
+  errorLogs?: string[]
 ): Promise<AIRepairResult> {
-  // Simular delay de procesamiento de IA (2 segundos)
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  try {
+    // Llamar al endpoint de corrección de IA
+    // El backend espera logs como string, no array
+    const logsString = errorLogs && errorLogs.length > 0
+      ? errorLogs.join('\n')
+      : `Error en el nodo: ${failedNodeKey}`;
 
-  // Encontrar el paso que falló
-  const failedStep = steps.find((s) => s.node_key === failedNodeKey);
+    const response = await apiClient.post('/ia/fix', {
+      name: workflowId,
+      definition: {
+        nodes: steps.map((step) => ({
+          id: step.node_key,
+          type: step.type,
+          params: step.params || {},
+          depends_on: edges
+            .filter(e => e.to_node_key === step.node_key)
+            .map(e => e.from_node_key)
+        }))
+      },
+      logs: logsString
+    });
 
-  if (!failedStep) {
+    const data = response.data;
+
+    // Verificar si la IA pudo reparar el workflow
+    if (!data.patched_definition || !data.patched_definition.nodes) {
+      return {
+        canRepair: false,
+        message: 'No se pudo reparar el workflow automáticamente.',
+        fixedIssues: data.notes || []
+      };
+    }
+
+    // Convertir la definición reparada de vuelta a steps
+    const repairedSteps = data.patched_definition.nodes.map((node: any, index: number) => {
+      const originalStep = steps.find(s => s.node_key === node.id);
+
+      // Si es un nodo nuevo (no existe en originalStep), crear uno completo
+      if (!originalStep) {
+        return {
+          id: `step_${Date.now()}_${index}`,
+          workflow_id: workflowId,
+          node_key: node.id || `node_${Date.now()}_${index}`,
+          type: node.type,
+          params: node.params || {}
+        } as Step;
+      }
+
+      // Si es un nodo existente, actualizar solo type y params
+      return {
+        ...originalStep,
+        type: node.type,
+        params: node.params
+      } as Step;
+    });
+
+    // Generar edges basándose en depends_on de los nodos reparados
+    const repairedEdges: Edge[] = [];
+    data.patched_definition.nodes.forEach((node: any, index: number) => {
+      const dependsOn = node.depends_on || [];
+      dependsOn.forEach((fromNodeKey: string) => {
+        // Buscar si ya existe este edge en los originales
+        const existingEdge = edges.find(
+          e => e.from_node_key === fromNodeKey && e.to_node_key === node.id
+        );
+
+        if (existingEdge) {
+          // Mantener el edge existente
+          repairedEdges.push(existingEdge);
+        } else {
+          // Crear nuevo edge
+          repairedEdges.push({
+            id: `edge_${Date.now()}_${index}`,
+            workflow_id: workflowId,
+            from_node_key: fromNodeKey,
+            to_node_key: node.id
+          });
+        }
+      });
+    });
+
+    return {
+      canRepair: true,
+      message: data.notes?.[0] || 'Workflow reparado exitosamente usando IA.',
+      repairedSteps,
+      repairedEdges,
+      fixedIssues: data.notes || ['Correcciones aplicadas']
+    };
+  } catch (error) {
+    console.error('Error calling AI repair:', error);
+
     return {
       canRepair: false,
-      message: 'No se pudo identificar el nodo con error.',
-      fixedIssues: [],
+      message: 'No se pudo conectar con el servicio de IA para reparar el workflow.',
+      fixedIssues: [
+        'Verifica que el backend esté ejecutándose',
+        'Revisa la configuración de IA_PROVIDER en el .env del backend'
+      ]
     };
   }
-
-  // Generar reparaciones basadas en el tipo de tarea
-  const repairedSteps = steps.map((step) => {
-    if (step.node_key !== failedNodeKey) return step;
-
-    // Reparaciones específicas por tipo de tarea
-    switch (step.type) {
-      case 'http_get':
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            timeout: 10000, // Aumentar timeout
-            retries: 5, // Más reintentos
-            retryDelay: 1000, // Delay entre reintentos
-            fallbackUrl: step.params.url + '/backup', // URL de respaldo
-          },
-        };
-
-      case 'validate_csv':
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            skipInvalidRows: true, // Omitir filas inválidas
-            strictMode: false, // Modo menos estricto
-            errorTolerance: 0.1, // Tolerar 10% de errores
-          },
-        };
-
-      case 'transform_simple':
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            ignoreErrors: true, // Ignorar errores de transformación
-            defaultValues: true, // Usar valores por defecto
-          },
-        };
-
-      case 'save_db':
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            mode: 'append', // Cambiar a modo append en vez de replace
-            createIfNotExists: true, // Crear tabla si no existe
-            onConflict: 'ignore', // Ignorar conflictos
-          },
-        };
-
-      case 'notify_mock':
-        return {
-          ...step,
-          params: {
-            ...step.params,
-            retryOnFailure: true,
-            maxRetries: 3,
-          },
-        };
-
-      default:
-        return step;
-    }
-  });
-
-  // Generar lista de problemas resueltos
-  const fixedIssues: string[] = [];
-  const stepType = failedStep.type;
-
-  switch (stepType) {
-    case 'http_get':
-      fixedIssues.push(
-        'Timeout aumentado de 5s a 10s para peticiones lentas',
-        'Reintentos aumentados a 5 con delay de 1s entre cada intento',
-        'URL de respaldo agregada para redundancia'
-      );
-      break;
-    case 'validate_csv':
-      fixedIssues.push(
-        'Modo de validación cambiado a menos estricto',
-        'Configurado para omitir filas inválidas',
-        'Tolerancia de error establecida en 10%'
-      );
-      break;
-    case 'transform_simple':
-      fixedIssues.push(
-        'Configurado para ignorar errores de transformación',
-        'Valores por defecto habilitados para campos faltantes'
-      );
-      break;
-    case 'save_db':
-      fixedIssues.push(
-        'Modo cambiado a "append" para evitar sobrescritura',
-        'Configurado para crear tabla si no existe',
-        'Conflictos configurados para ser ignorados'
-      );
-      break;
-    case 'notify_mock':
-      fixedIssues.push(
-        'Reintentos automáticos habilitados',
-        'Máximo de 3 reintentos configurados'
-      );
-      break;
-  }
-
-  return {
-    canRepair: true,
-    message: `Se identificaron y corrigieron ${fixedIssues.length} problemas en el nodo "${failedNodeKey}".`,
-    repairedSteps,
-    repairedEdges: edges,
-    fixedIssues,
-  };
 }
 
 /**
- * Simula la predicción de resultados de un workflow mediante IA
+ * Predice el resultado de un workflow usando IA real (Gemini)
  * @param workflowId ID del workflow
  * @param steps Pasos del workflow
  * @param edges Conexiones del workflow
@@ -281,10 +272,112 @@ export async function predictWorkflowOutcome(
   steps: Step[],
   edges: Edge[]
 ): Promise<AIPredictionResult> {
-  // Simular delay de procesamiento de IA (1.5 segundos)
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  try {
+    // Llamar al endpoint de estimación de IA
+    const response = await apiClient.post('/ia/estimate', {
+      name: workflowId,
+      definition: {
+        nodes: steps.map((step) => ({
+          id: step.node_key,
+          type: step.type,
+          params: step.params || {},
+          depends_on: edges
+            .filter(e => e.to_node_key === step.node_key)
+            .map(e => e.from_node_key)
+        }))
+      }
+    });
 
-  // Analizar tipos de tareas y sus costos
+    const data = response.data;
+
+    // Transformar respuesta del backend al formato del frontend
+    const estimatedDuration = data.estimated_time_seconds || 0;
+    const estimatedCost = data.estimated_cost_usd || 0;
+    const complexityScore = data.complexity_score || 0;
+
+    // Determinar nivel de costo basado en la estimación
+    let costLevel: 'bajo' | 'medio' | 'alto' = 'bajo';
+    if (estimatedCost > 0.01) {
+      costLevel = 'alto';
+    } else if (estimatedCost > 0.005) {
+      costLevel = 'medio';
+    }
+
+    // Calcular tasa de éxito basada en complejidad
+    const baseSuccessRate = 95;
+    const complexityPenalty = Math.floor(complexityScore * 30);
+    const estimatedSuccessRate = Math.max(baseSuccessRate - complexityPenalty, 60);
+
+    // Extraer problemas potenciales y recomendaciones
+    const potentialIssues: string[] = [];
+    const recommendations: string[] = [];
+
+    // Analizar el breakdown para generar insights
+    const breakdown = data.breakdown || [];
+    breakdown.forEach((item: any) => {
+      if (item.time > 10) {
+        potentialIssues.push(`El nodo "${item.type}" puede tardar hasta ${item.time}s`);
+      }
+      if (item.cost > 0.005) {
+        potentialIssues.push(`El nodo "${item.type}" tiene un costo estimado de $${item.cost}`);
+      }
+    });
+
+    // Agregar assumptions como recomendaciones
+    if (data.assumptions && Array.isArray(data.assumptions)) {
+      recommendations.push(...data.assumptions);
+    }
+
+    // Recomendaciones basadas en complejidad
+    if (complexityScore > 0.7) {
+      recommendations.push('El workflow es complejo. Considera dividirlo en sub-workflows más simples.');
+    }
+    if (steps.length > 5) {
+      recommendations.push('El workflow tiene múltiples pasos. Asegúrate de manejar errores apropiadamente.');
+    }
+
+    // Validar que hay nodos
+    if (steps.length === 0) {
+      potentialIssues.push('El workflow no tiene nodos configurados');
+    }
+
+    // Verificar si hay nodos HTTP
+    const hasHttpNodes = steps.some(s => s.type === 'http_get');
+    if (hasHttpNodes) {
+      potentialIssues.push('Las peticiones HTTP pueden fallar por timeout o errores de red');
+      recommendations.push('Configura timeout y reintentos para peticiones HTTP');
+    }
+
+    // Verificar si hay validación de datos
+    const hasValidation = steps.some(s => s.type === 'validate_csv');
+    const hasTransformOrSave = steps.some(s => s.type === 'transform_simple' || s.type === 'save_db');
+    if (!hasValidation && hasTransformOrSave) {
+      potentialIssues.push('No hay validación de datos antes de transformar/guardar');
+      recommendations.push('Agrega un nodo de validación antes de transformaciones o guardado');
+    }
+
+    return {
+      estimatedDuration,
+      estimatedSuccessRate,
+      costLevel,
+      potentialIssues: potentialIssues.length > 0 ? potentialIssues : ['No se detectaron problemas potenciales'],
+      recommendations: recommendations.length > 0 ? recommendations : ['El workflow parece bien configurado'],
+    };
+  } catch (error) {
+    console.error('Error calling AI prediction:', error);
+
+    // Fallback a predicción básica
+    return predictWorkflowOutcomeFallback(steps, edges);
+  }
+}
+
+/**
+ * Predicción básica de fallback cuando la IA no está disponible
+ */
+function predictWorkflowOutcomeFallback(
+  steps: Step[],
+  edges: Edge[]
+): AIPredictionResult {
   const taskCosts = {
     http_get: { time: 5, cost: 'bajo' as const },
     validate_csv: { time: 10, cost: 'medio' as const },
@@ -293,14 +386,6 @@ export async function predictWorkflowOutcome(
     notify_mock: { time: 2, cost: 'bajo' as const },
   };
 
-  // Calcular métricas basadas en el workflow
-  const stepCount = steps.length;
-  const hasHttpRequests = steps.some((s) => s.type === 'http_get');
-  const hasValidation = steps.some((s) => s.type === 'validate_csv');
-  const hasTransform = steps.some((s) => s.type === 'transform_simple');
-  const hasDatabase = steps.some((s) => s.type === 'save_db');
-
-  // Estimar duración total
   let estimatedDuration = 0;
   const costPoints = { bajo: 1, medio: 3, alto: 5 };
   let totalCostPoints = 0;
@@ -310,18 +395,10 @@ export async function predictWorkflowOutcome(
     const cost = taskCosts[taskType] || { time: 5, cost: 'bajo' as const };
     estimatedDuration += cost.time;
     totalCostPoints += costPoints[cost.cost];
-
-    // Analizar parámetros para ajustar estimación
-    if (step.type === 'validate_csv' && step.params.file_path) {
-      estimatedDuration += 5; // Archivos grandes toman más tiempo
-    }
-    if (step.type === 'http_get' && step.params.timeout) {
-      estimatedDuration += 2; // Timeout configurado indica operación lenta
-    }
   });
 
-  // Determinar nivel de costo
-  const avgCostPoints = totalCostPoints / stepCount;
+  const stepCount = steps.length;
+  const avgCostPoints = stepCount > 0 ? totalCostPoints / stepCount : 0;
   let costLevel: 'bajo' | 'medio' | 'alto';
   if (avgCostPoints <= 2) {
     costLevel = 'bajo';
@@ -331,15 +408,21 @@ export async function predictWorkflowOutcome(
     costLevel = 'alto';
   }
 
-  // Estimar tasa de éxito
   let successRate = 95;
-  if (!hasValidation && hasTransform) successRate -= 15; // Sin validación es riesgoso
-  if (stepCount > 10) successRate -= 10; // Workflows muy largos son más propensos a fallos
-  if (hasHttpRequests) successRate -= 5; // HTTP puede fallar
-  if (hasDatabase) successRate -= 5; // DB puede tener problemas de conexión
+  const hasHttpRequests = steps.some((s) => s.type === 'http_get');
+  const hasValidation = steps.some((s) => s.type === 'validate_csv');
+  const hasTransform = steps.some((s) => s.type === 'transform_simple');
+  const hasDatabase = steps.some((s) => s.type === 'save_db');
 
-  // Generar problemas potenciales
-  const potentialIssues: string[] = [];
+  if (!hasValidation && hasTransform) successRate -= 15;
+  if (stepCount > 10) successRate -= 10;
+  if (hasHttpRequests) successRate -= 5;
+  if (hasDatabase) successRate -= 5;
+
+  const potentialIssues: string[] = [
+    'Servicio de IA no disponible - usando estimación básica'
+  ];
+
   if (hasHttpRequests) {
     potentialIssues.push('Peticiones HTTP pueden fallar por timeout o errores de red');
   }
@@ -349,31 +432,21 @@ export async function predictWorkflowOutcome(
   if (!hasValidation && (hasTransform || hasDatabase)) {
     potentialIssues.push('Sin validación de datos antes de transformar/guardar');
   }
-  if (hasDatabase) {
-    potentialIssues.push('Operaciones de base de datos pueden ser lentas con grandes volúmenes');
-  }
 
-  // Generar recomendaciones
-  const recommendations: string[] = [];
+  const recommendations: string[] = [
+    'Conecta con el backend para obtener análisis más precisos con IA'
+  ];
+
   if (hasHttpRequests) {
-    recommendations.push('Configurar timeout y reintentos para peticiones HTTP');
+    recommendations.push('Configura timeout y reintentos para peticiones HTTP');
   }
   if (!hasValidation) {
-    recommendations.push('Agregar validación de datos al inicio del workflow');
-  }
-  if (stepCount > 7) {
-    recommendations.push('Considerar dividir en sub-workflows para mejor mantenibilidad');
-  }
-  if (hasDatabase && !hasValidation) {
-    recommendations.push('Validar datos antes de insertar en base de datos');
-  }
-  if (costLevel === 'alto') {
-    recommendations.push('Optimizar operaciones costosas o ejecutar en horarios de baja demanda');
+    recommendations.push('Agrega validación de datos al inicio del workflow');
   }
 
   return {
     estimatedDuration,
-    estimatedSuccessRate: Math.max(successRate, 60), // Mínimo 60%
+    estimatedSuccessRate: Math.max(successRate, 60),
     costLevel,
     potentialIssues,
     recommendations,
@@ -382,8 +455,9 @@ export async function predictWorkflowOutcome(
 
 /**
  * Reinicia el contador de optimizaciones para un workflow
- * (útil para testing o cuando se resetea un workflow)
+ * (Función legacy mantenida por compatibilidad, no hace nada en la versión real)
  */
 export function resetOptimizationCount(workflowId: string): void {
-  optimizationCount.delete(workflowId);
+  // No-op en la versión con IA real
+  console.log(`Reset optimization count for ${workflowId} (no-op with real AI)`);
 }

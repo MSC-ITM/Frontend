@@ -17,7 +17,7 @@ const TestComponent = () => {
       ) : (
         <>
           <div>Not authenticated</div>
-          <button onClick={() => login('admin', 'admin123')}>Login</button>
+          <button onClick={() => login('demo', 'demo123')}>Login</button>
           <button onClick={() => login('wrong', 'wrong')}>Login Wrong</button>
         </>
       )}

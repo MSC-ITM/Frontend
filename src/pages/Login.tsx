@@ -177,7 +177,7 @@ const Login: React.FC = () => {
                   className={`w-full pl-10 pr-4 py-3 bg-black/40 text-white border ${
                     errors.username ? 'border-rose-500/50' : 'border-cyan-500/30'
                   } rounded-lg focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-colors placeholder-gray-500`}
-                  placeholder="admin"
+                  placeholder="demo"
                   autoFocus
                 />
               </div>
@@ -258,8 +258,8 @@ const Login: React.FC = () => {
             </p>
             <div className="mt-2 p-3 bg-black/20 rounded-lg border border-cyan-500/10">
               <p className="text-xs text-cyan-300/80 font-mono text-center">
-                Usuario: <span className="text-white">admin</span> | Contraseña:{' '}
-                <span className="text-white">admin123</span>
+                Usuario: <span className="text-white">demo</span> | Contraseña:{' '}
+                <span className="text-white">demo123</span>
               </p>
             </div>
           </div>

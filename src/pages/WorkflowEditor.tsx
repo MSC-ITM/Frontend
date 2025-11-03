@@ -84,6 +84,10 @@ const WorkflowEditor: React.FC = () => {
   const edges = workflowState.edges;
 
   useEffect(() => {
+    console.log('[WorkflowEditor] workflowState.steps changed:', workflowState.steps);
+  }, [workflowState.steps]);
+
+  useEffect(() => {
     loadTaskTypes();
     if (isEditMode && id) {
       loadWorkflow();
@@ -184,31 +188,31 @@ const WorkflowEditor: React.FC = () => {
 
   // Wrapper functions para actualizar steps y edges con historial
   const updateSteps = useCallback(
-    (newSteps: Step[]) => {
+    (newSteps: Step[], overwrite = false) => {
       setWorkflowState({
         steps: newSteps,
         edges: edges,
-      });
+      }, overwrite);
     },
     [edges, setWorkflowState]
   );
 
   const updateEdges = useCallback(
-    (newEdges: Edge[]) => {
+    (newEdges: Edge[], overwrite = false) => {
       setWorkflowState({
         steps: steps,
         edges: newEdges,
-      });
+      }, overwrite);
     },
     [steps, setWorkflowState]
   );
 
   const updateBoth = useCallback(
-    (newSteps: Step[], newEdges: Edge[]) => {
+    (newSteps: Step[], newEdges: Edge[], overwrite = false) => {
       setWorkflowState({
         steps: newSteps,
         edges: newEdges,
-      });
+      }, overwrite);
     },
     [setWorkflowState]
   );
@@ -319,13 +323,19 @@ const WorkflowEditor: React.FC = () => {
         setShowAlert(true);
       } else {
         // Aplicar optimizaciones
+        console.log('[WorkflowEditor] Applying optimizations...');
+        console.log('[WorkflowEditor] Current steps before update:', steps);
+        console.log('[WorkflowEditor] Optimized steps to apply:', result.optimizedSteps);
+
         if (result.optimizedSteps && result.optimizedEdges) {
-          updateBoth(result.optimizedSteps, result.optimizedEdges);
+          updateBoth(result.optimizedSteps, result.optimizedEdges, true);
         } else if (result.optimizedSteps) {
-          updateSteps(result.optimizedSteps);
+          updateSteps(result.optimizedSteps, true);
         } else if (result.optimizedEdges) {
-          updateEdges(result.optimizedEdges);
+          updateEdges(result.optimizedEdges, true);
         }
+
+        console.log('[WorkflowEditor] Steps after update:', steps);
 
         // Mostrar sugerencias
         const suggestionsText = result.suggestions?.join('\n• ') || '';

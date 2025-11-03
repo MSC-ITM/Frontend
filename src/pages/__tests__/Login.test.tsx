@@ -42,7 +42,7 @@ describe('Login', () => {
     render(<Login />);
 
     const usernameInput = screen.getByLabelText('Usuario');
-    fireEvent.change(usernameInput, { target: { value: 'admin' } });
+    fireEvent.change(usernameInput, { target: { value: 'demo' } });
 
     const submitButton = screen.getByRole('button', { name: /Iniciar Sesión/i });
     fireEvent.click(submitButton);
@@ -76,7 +76,7 @@ describe('Login', () => {
     });
 
     const usernameInput = screen.getByLabelText('Usuario');
-    fireEvent.change(usernameInput, { target: { value: 'admin' } });
+    fireEvent.change(usernameInput, { target: { value: 'demo' } });
 
     await waitFor(() => {
       expect(screen.queryByText(/usuario.*requerido/i)).not.toBeInTheDocument();
@@ -87,8 +87,8 @@ describe('Login', () => {
     render(<Login />);
 
     expect(screen.getByText('Credenciales de prueba:')).toBeInTheDocument();
-    const adminTexts = screen.getAllByText(/admin/i);
-    expect(adminTexts.length).toBeGreaterThan(0);
+    const demoTexts = screen.getAllByText(/demo/i);
+    expect(demoTexts.length).toBeGreaterThan(0);
   });
 
   it('debería mostrar estado de carga durante el login', async () => {
@@ -97,8 +97,8 @@ describe('Login', () => {
     const usernameInput = screen.getByLabelText('Usuario');
     const passwordInput = screen.getByLabelText('Contraseña');
 
-    fireEvent.change(usernameInput, { target: { value: 'admin' } });
-    fireEvent.change(passwordInput, { target: { value: 'admin123' } });
+    fireEvent.change(usernameInput, { target: { value: 'demo' } });
+    fireEvent.change(passwordInput, { target: { value: 'demo123' } });
 
     const submitButton = screen.getByRole('button', { name: /Iniciar Sesión/i });
     fireEvent.click(submitButton);

@@ -77,11 +77,13 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     convertToReactFlowEdges(initialEdges)
   );
 
-  // Sincronizar con cambios externos (undo/redo)
+  // Sincronizar con cambios externos (undo/redo y optimizaciones de IA)
   useEffect(() => {
     const newNodes = convertStepsToNodes(initialSteps);
-    // Solo actualizar si hay cambios reales
-    if (JSON.stringify(nodes.map(n => n.id).sort()) !== JSON.stringify(newNodes.map(n => n.id).sort())) {
+    // Comparar nodos completos (IDs y datos) para detectar cambios en params
+    const nodesChanged = JSON.stringify(nodes) !== JSON.stringify(newNodes);
+    if (nodesChanged) {
+      console.log('[WorkflowCanvas] Nodes changed, updating canvas');
       isExternalUpdate.current = true;
       setNodes(newNodes);
     }
