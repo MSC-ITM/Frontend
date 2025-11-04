@@ -98,7 +98,6 @@ describe('AuthContext', () => {
       expect(screen.getByText(/User:/)).toBeInTheDocument();
     }, { timeout: 2000 });
 
-    // User should be authenticated now
     expect(screen.getByText('Logout')).toBeInTheDocument();
   });
 
@@ -155,14 +154,12 @@ describe('AuthContext', () => {
       await new Promise(resolve => setTimeout(resolve, 100));
     });
 
-    // Should still be not authenticated
     await waitFor(() => {
       expect(screen.getByText('Not authenticated')).toBeInTheDocument();
     });
   });
 
   it('debería hacer logout exitosamente', async () => {
-    // First set up an authenticated state
     const mockUser = {
       id: '1',
       name: 'Test User',
@@ -188,7 +185,6 @@ describe('AuthContext', () => {
       expect(screen.getByText('Not authenticated')).toBeInTheDocument();
     });
 
-    // User should see login buttons again
     expect(screen.getByText('Login')).toBeInTheDocument();
   });
 
@@ -202,7 +198,6 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    // Should not be authenticated with invalid data
     expect(screen.getByText('Not authenticated')).toBeInTheDocument();
   });
 });

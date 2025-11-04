@@ -46,14 +46,14 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
         message: 'Por favor selecciona un archivo CSV válido (.csv)',
       });
       setShowAlert(true);
-      e.target.value = ''; // Limpiar input
+      e.target.value = '';
       return;
     }
 
     setCsvFile(file);
   };
 
-  // Get icon based on task type
+  // Obtener ícono basado en el tipo de tarea
   const getTaskIcon = (taskType: string): React.ReactElement => {
     const defaultIcon = (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,7 +87,7 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
     return icons[taskType] ?? defaultIcon;
   };
 
-  // Get color based on task type (neon colors)
+  // Obtener color basado en el tipo de tarea (colores neón)
   const getTaskColor = (taskType: string): string => {
     const colors: Record<string, string> = {
       http_get: 'from-cyan-500 to-blue-500',
@@ -99,7 +99,7 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
     return colors[taskType] || 'from-gray-500 to-gray-600';
   };
 
-  // Get shadow color
+  // Obtener color de sombra basado en el tipo de tarea
   const getShadowColor = (taskType: string): string => {
     const shadows: Record<string, string> = {
       http_get: 'shadow-cyan-500/50',
@@ -245,7 +245,6 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                   e.stopPropagation();
                   const newTaskType = e.target.value;
                   setCurrentTaskType(newTaskType);
-                  // Actualizar el nodo en React Flow
                   setNodes((nds) =>
                     nds.map((node) =>
                       node.id === id
@@ -497,8 +496,6 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                         return;
                       }
 
-                      // Columnas son opcionales ahora, no validamos
-
                       let filePath = data.params?.path;
 
                       // Si hay un archivo nuevo, subirlo
@@ -567,7 +564,6 @@ const TaskNode: React.FC<NodeProps<TaskNodeData>> = ({ data, selected, id }) => 
                         return;
                       }
 
-                      // Todo válido, cerrar el modal
                       setIsEditing(false);
                     } else if (currentTaskType === 'http_get') {
                       // Para http_get, validar que URL esté presente

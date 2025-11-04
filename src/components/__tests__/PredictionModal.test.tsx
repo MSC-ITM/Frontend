@@ -79,7 +79,7 @@ describe('PredictionModal', () => {
     );
 
     expect(screen.getByText('Tiempo Estimado')).toBeInTheDocument();
-    expect(screen.getByText('2m')).toBeInTheDocument(); // 120 segundos = 2m
+    expect(screen.getByText('2m')).toBeInTheDocument();
     expect(screen.getByText('Tasa de Éxito')).toBeInTheDocument();
     expect(screen.getByText('85%')).toBeInTheDocument();
   });
@@ -87,7 +87,7 @@ describe('PredictionModal', () => {
   it('debe formatear duración correctamente para segundos', () => {
     const prediction = {
       ...mockPrediction,
-      estimatedDuration: 45 // 45 segundos
+      estimatedDuration: 45
     };
 
     render(
@@ -106,7 +106,7 @@ describe('PredictionModal', () => {
   it('debe formatear duración correctamente para minutos y segundos', () => {
     const prediction = {
       ...mockPrediction,
-      estimatedDuration: 135 // 2m 15s
+      estimatedDuration: 135
     };
 
     render(

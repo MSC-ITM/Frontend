@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { workflowsApi, taskTypesApi } from '../services/api';
-import { Button, Card, Loading, WorkflowCanvas } from '../components';
+import { Loading, WorkflowCanvas } from '../components';
 import Alert, { AlertType } from '../components/Alert';
 import { optimizeWorkflow } from '../services/aiService';
 import { useHistory } from '../hooks/useHistory';
@@ -27,9 +27,6 @@ interface WorkflowFormData {
   active: boolean;
 }
 
-interface RouteParams {
-  id?: string;
-}
 
 interface WorkflowState {
   steps: Step[];
@@ -216,56 +213,6 @@ const WorkflowEditor: React.FC = () => {
     },
     [setWorkflowState]
   );
-
-  const addStep = (): void => {
-    const newStep: Step = {
-      id: `step_${Date.now()}`,
-      workflow_id: id || 'temp',
-      node_key: `node_${steps.length + 1}`,
-      type: taskTypes[0]?.type || '',
-      params: {},
-    };
-    updateSteps([...steps, newStep]);
-  };
-
-  const removeStep = (stepId: string): void => {
-    const newSteps = steps.filter((s) => s.id !== stepId);
-    // Remove edges connected to this step
-    const stepToRemove = steps.find((s) => s.id === stepId);
-    let newEdges = edges;
-    if (stepToRemove) {
-      newEdges = edges.filter(
-        (e) => e.from_node_key !== stepToRemove.node_key && e.to_node_key !== stepToRemove.node_key
-      );
-    }
-    updateBoth(newSteps, newEdges);
-  };
-
-  const updateStep = (stepId: string, field: keyof Step, value: any): void => {
-    updateSteps(steps.map((s) => (s.id === stepId ? { ...s, [field]: value } : s)));
-  };
-
-  const addEdge = (): void => {
-    if (steps.length < 2) {
-      alert('Need at least 2 steps to create an edge');
-      return;
-    }
-    const newEdge: Edge = {
-      id: `edge_${Date.now()}`,
-      workflow_id: id || 'temp',
-      from_node_key: steps[0].node_key,
-      to_node_key: steps[1]?.node_key || steps[0].node_key,
-    };
-    updateEdges([...edges, newEdge]);
-  };
-
-  const removeEdge = (edgeId: string): void => {
-    updateEdges(edges.filter((e) => e.id !== edgeId));
-  };
-
-  const updateEdge = (edgeId: string, field: keyof Edge, value: any): void => {
-    updateEdges(edges.map((e) => (e.id === edgeId ? { ...e, [field]: value } : e)));
-  };
 
   const handleFormChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -531,7 +478,6 @@ const WorkflowEditor: React.FC = () => {
             initialEdges={edges}
             taskTypes={taskTypes}
             onNodesChange={(updatedSteps) => {
-              // Convertir de Omit<Step> a Step[]
               const fullSteps: Step[] = updatedSteps.map((s, index) => ({
                 id: steps[index]?.id || `step_${Date.now()}_${index}`,
                 workflow_id: id || 'temp',
@@ -542,8 +488,7 @@ const WorkflowEditor: React.FC = () => {
               updateSteps(fullSteps);
             }}
             onEdgesChange={(updatedEdges) => {
-              // Convertir de Omit<Edge> a Edge[]
-              const fullEdges: Edge[] = updatedEdges.map((e, index) => ({
+              const fullEdges: Edge[] = (updatedEdges as Edge[]).map((e, index) => ({
                 id: e.id || `edge_${Date.now()}_${index}`,
                 workflow_id: id || 'temp',
                 from_node_key: e.from_node_key,

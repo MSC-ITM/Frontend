@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '../../test/test-utils';
 import StateBadge from '../StateBadge';
-import { TaskState } from '../../types';
 
 describe('StateBadge', () => {
   it('debería renderizar estado Pending', () => {

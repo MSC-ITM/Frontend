@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '../../test/test-utils';
 import Login from '../Login';
-import * as AuthContext from '../../context/AuthContext';
 import apiClient from '../../services/api';
 
 // Mock API client
@@ -167,6 +166,5 @@ describe('Login', () => {
     expect(themeButton).toBeInTheDocument();
 
     fireEvent.click(themeButton);
-    // Theme should toggle (tested through ThemeContext)
   });
 });

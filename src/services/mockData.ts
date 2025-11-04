@@ -863,7 +863,7 @@ export const generateId = (prefix: IdPrefix): string => {
 if (typeof import.meta.env !== 'undefined' && import.meta.env.DEV && !import.meta.env.VITEST) {
   try {
     // Validate task types
-    mockTaskTypes.forEach((taskType, index) => {
+    mockTaskTypes.forEach((taskType) => {
       validateOrThrow(taskTypeSchema, taskType);
     });
 

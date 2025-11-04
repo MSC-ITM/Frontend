@@ -119,11 +119,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
       return { success: true, user: userData };
     } catch (error) {
-      // Si es un error de Login, re-lanzarlo
       if ((error as LoginError).success === false) {
         throw error;
       }
-      // Error de red u otro
       throw {
         success: false,
         message: 'Error de conexión con el servidor',

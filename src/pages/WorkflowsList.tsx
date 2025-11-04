@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { workflowsApi } from '../services/api';
 import { Loading, StateBadge, ConfirmModal, PredictionModal } from '../components';
 import Alert, { AlertType } from '../components/Alert';
-import { Workflow, Run, AIPredictionResult } from '../types';
+import { Workflow, AIPredictionResult } from '../types';
 import { predictWorkflowOutcome } from '../services/aiService';
 
 // ============================================
@@ -131,8 +131,6 @@ const WorkflowsList: React.FC = () => {
       setPrediction(null);
       setWorkflowToRun(null);
 
-      // Navigate directly to the run detail page
-      // The run detail page will handle polling for Worker updates
       navigate(`/runs/${run.id}`);
     } catch (err) {
       setShowPredictionModal(false);

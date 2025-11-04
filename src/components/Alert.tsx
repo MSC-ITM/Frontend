@@ -10,7 +10,6 @@ interface AlertProps {
 }
 
 const Alert: React.FC<AlertProps> = ({ type, title, message, onClose }) => {
-  // Configuración de colores y estilos según el tipo
   const getAlertStyles = () => {
     const styles = {
       error: {

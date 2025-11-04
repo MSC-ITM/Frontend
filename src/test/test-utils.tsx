@@ -10,9 +10,7 @@ interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
   withTheme?: boolean;
 }
 
-/**
- * Custom render function that includes common providers
- */
+
 export function renderWithProviders(
   ui: ReactElement,
   options: CustomRenderOptions = {}

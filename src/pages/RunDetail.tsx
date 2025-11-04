@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { runsApi, workflowsApi } from '../services/api';
-import { Button, Card, Loading, StateBadge, ProgressBar, ConfirmModal } from '../components';
+import { Loading, StateBadge, ProgressBar, ConfirmModal } from '../components';
 import Alert, { AlertType } from '../components/Alert';
 import { repairWorkflow } from '../services/aiService';
-import { Run, TaskInstance, LogEntry, LogLevel, RunState } from '../types';
+import { Run, TaskInstance, LogEntry, LogLevel } from '../types';
 
 // ============================================
 // Types & Interfaces
@@ -55,11 +55,10 @@ const RunDetail: React.FC = () => {
     if (!autoRefresh || !run) return;
 
     const interval = setInterval(() => {
-      // Only auto-refresh if run is in progress
       if (run.state === 'Running' || run.state === 'Pending') {
         loadRunDetails(true);
       }
-    }, 3000); // Refresh every 3 seconds
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [autoRefresh, run]);

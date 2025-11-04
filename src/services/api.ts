@@ -16,12 +16,12 @@ import {
   validateOrThrow,
 } from '../types/index';
 
-// Import mock APIs
+// Importar APIs simuladas
 import * as mockApis from './mockApi';
 
-// Configure base URL - update this when backend is deployed
+// Configurar URL base - actualizar esto cuando el backend esté desplegado
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // Read from .env
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'; // Leer desde .env
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
@@ -30,7 +30,7 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
-// Add request interceptor to attach auth token
+// Agregar interceptor de solicitud para adjuntar token de autenticación
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -44,7 +44,7 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Add response interceptor for error handling
+// Agregar interceptor de respuesta para manejo de errores
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -53,19 +53,19 @@ apiClient.interceptors.response.use(
   }
 );
 
-// Options for getLogs
+// Opciones para getLogs
 interface GetLogsOptions {
   task?: string;
   page?: number;
   limit?: number;
 }
 
-// Task Types API Interface
+// Interfaz de API de Tipos de Tarea
 interface TaskTypesApi {
   getAll: () => Promise<TaskType[]>;
 }
 
-// Workflows API Interface
+// Interfaz de API de Workflows
 interface WorkflowsApi {
   getAll: () => Promise<Workflow[]>;
   getById: (id: string) => Promise<WorkflowDetailDTO>;
@@ -75,7 +75,7 @@ interface WorkflowsApi {
   runNow: (id: string) => Promise<Run>;
 }
 
-// Runs API Interface
+// Interfaz de API de Ejecuciones
 interface RunsApi {
   getByWorkflow: (workflowId: string) => Promise<Run[]>;
   getById: (runId: string) => Promise<RunDetailDTO>;
@@ -83,11 +83,11 @@ interface RunsApi {
   cancel: (runId: string) => Promise<Run>;
 }
 
-// Real API implementations (when not using mock)
+// Implementaciones reales de la API (cuando no se usa mock)
 const realTaskTypesApi: TaskTypesApi = {
   getAll: async () => {
     const response = await apiClient.get<TaskType[]>('/task-types');
-    // Validate response data
+    // Validar datos de respuesta
     return response.data.map((item) => validateOrThrow(taskTypeSchema, item));
   },
 };
@@ -95,29 +95,29 @@ const realTaskTypesApi: TaskTypesApi = {
 const realWorkflowsApi: WorkflowsApi = {
   getAll: async () => {
     const response = await apiClient.get<Workflow[]>('/workflows');
-    // Validate response data
+    // Validar datos de respuesta
     return response.data.map((item) => validateOrThrow(workflowSchema, item));
   },
 
   getById: async (id: string) => {
     const response = await apiClient.get<WorkflowDetailDTO>(`/workflows/${id}`);
-    // Validate response data
+    // Validar datos de respuesta
     return validateOrThrow(workflowDetailDTOSchema, response.data);
   },
 
   create: async (data: CreateWorkflowDTO) => {
     const response = await apiClient.post<WorkflowDetailDTO>('/workflows', data);
-    // Validate response data - Backend returns WorkflowDetailDTO
+    // Validar datos de respuesta - El backend devuelve WorkflowDetailDTO
     const workflowDetail = validateOrThrow(workflowDetailDTOSchema, response.data);
-    // Return just the workflow object for consistency with other API methods
+    // Devolver solo el objeto workflow para consistencia con otros métodos de la API
     return workflowDetail.workflow;
   },
 
   update: async (id: string, data: Partial<CreateWorkflowDTO>) => {
     const response = await apiClient.put<WorkflowDetailDTO>(`/workflows/${id}`, data);
-    // Validate response data - Backend returns WorkflowDetailDTO
+    // Validar datos de respuesta - El backend devuelve WorkflowDetailDTO
     const workflowDetail = validateOrThrow(workflowDetailDTOSchema, response.data);
-    // Return just the workflow object for consistency with other API methods
+    // Devolver solo el objeto workflow para consistencia con otros métodos de la API
     return workflowDetail.workflow;
   },
 
@@ -127,7 +127,7 @@ const realWorkflowsApi: WorkflowsApi = {
 
   runNow: async (id: string) => {
     const response = await apiClient.post<Run>(`/workflows/${id}/runs`);
-    // Validate response data
+    // Validar datos de respuesta
     return validateOrThrow(runSchema, response.data);
   },
 };
@@ -135,13 +135,13 @@ const realWorkflowsApi: WorkflowsApi = {
 const realRunsApi: RunsApi = {
   getByWorkflow: async (workflowId: string) => {
     const response = await apiClient.get<Run[]>(`/workflows/${workflowId}/runs`);
-    // Validate response data
+    // Validar datos de respuesta
     return response.data.map((item) => validateOrThrow(runSchema, item));
   },
 
   getById: async (runId: string) => {
     const response = await apiClient.get<RunDetailDTO>(`/runs/${runId}`);
-    // Validate response data
+    // Validar datos de respuesta
     return validateOrThrow(runDetailDTOSchema, response.data);
   },
 
@@ -154,18 +154,18 @@ const realRunsApi: RunsApi = {
     const queryString = params.toString();
     const url = `/runs/${runId}/logs${queryString ? `?${queryString}` : ''}`;
     const response = await apiClient.get<LogEntry[]>(url);
-    // Validate response data
+    // Validar datos de respuesta
     return response.data.map((item) => validateOrThrow(logEntrySchema, item));
   },
 
   cancel: async (runId: string) => {
     const response = await apiClient.post<Run>(`/runs/${runId}/cancel`);
-    // Validate response data
+    // Validar datos de respuesta
     return validateOrThrow(runSchema, response.data);
   },
 };
 
-// Export APIs based on USE_MOCK flag
+// Exportar APIs basándose en la bandera USE_MOCK
 export const taskTypesApi: TaskTypesApi = USE_MOCK ? mockApis.taskTypesApi : realTaskTypesApi;
 export const workflowsApi: WorkflowsApi = USE_MOCK ? mockApis.workflowsApi : realWorkflowsApi;
 export const runsApi: RunsApi = USE_MOCK ? mockApis.runsApi : realRunsApi;

@@ -44,18 +44,23 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   canRedo = false,
 }) => {
   // Convert steps to React Flow nodes
-  const convertStepsToNodes = (steps: Step[]): Node[] => {
-    return steps.map((step, index) => ({
-      id: step.node_key,
-      type: 'taskNode',
-      position: { x: 250 * index, y: 200 },
-      data: {
-        label: step.node_key,
-        taskType: step.type,
-        params: step.params,
-        taskTypes,
-      },
-    }));
+  const convertStepsToNodes = (steps: Step[], existingNodes: Node[] = []): Node[] => {
+    return steps.map((step, index) => {
+      // Buscar si el nodo ya existe para preservar su posición
+      const existingNode = existingNodes.find(n => n.id === step.node_key);
+      
+      return {
+        id: step.node_key,
+        type: 'taskNode',
+        position: existingNode?.position || { x: 250 + (index * 150), y: 200 + (index * 50) },
+        data: {
+          label: step.node_key,
+          taskType: step.type,
+          params: step.params,
+          taskTypes,
+        },
+      };
+    });
   };
 
   // Convert edges to React Flow edges
@@ -71,7 +76,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
   };
 
   const [nodes, setNodes, onNodesStateChange] = useNodesState(
-    convertStepsToNodes(initialSteps)
+    convertStepsToNodes(initialSteps, [])
   );
   const [edges, setEdges, onEdgesStateChange] = useEdgesState(
     convertToReactFlowEdges(initialEdges)
@@ -79,7 +84,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
 
   // Sincronizar con cambios externos (undo/redo y optimizaciones de IA)
   useEffect(() => {
-    const newNodes = convertStepsToNodes(initialSteps);
+    const newNodes = convertStepsToNodes(initialSteps, nodes);
     // Comparar nodos completos (IDs y datos) para detectar cambios en params
     const nodesChanged = JSON.stringify(nodes) !== JSON.stringify(newNodes);
     if (nodesChanged) {
@@ -98,12 +103,16 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     }
   }, [initialEdges]);
 
-  // Handle edge connections
+  // Manejar nuevas conexiones entre nodos
   const onConnect: OnConnect = useCallback(
     (params) => {
+      if (!params.source || !params.target) return;
+      
       const newEdge: FlowEdge = {
         ...params,
         id: `${params.source}-${params.target}`,
+        source: params.source,
+        target: params.target,
         type: 'smoothstep',
         animated: true,
         style: { stroke: '#3b82f6', strokeWidth: 2 },
@@ -113,10 +122,8 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     [setEdges]
   );
 
-  // Track if changes are from external source (undo/redo) vs internal
   const isExternalUpdate = React.useRef(false);
 
-  // Notify parent component of changes (with debounce to avoid infinite loops)
   useEffect(() => {
     if (onNodesChange && nodes.length > 0 && !isExternalUpdate.current) {
       const timer = setTimeout(() => {
@@ -147,7 +154,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     isExternalUpdate.current = false;
   }, [edges, onEdgesChange]);
 
-  // Add new node
+
   const addNode = () => {
     const newNodeId = `node_${Date.now()}`;
     const newNode: Node = {
@@ -167,7 +174,6 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
     setNodes((nds) => [...nds, newNode]);
   };
 
-  // Delete selected nodes and edges
   const deleteSelected = () => {
     setNodes((nds) => nds.filter((node) => !node.selected));
     setEdges((eds) => eds.filter((edge) => !edge.selected));
@@ -182,7 +188,7 @@ const WorkflowCanvas: React.FC<WorkflowCanvasProps> = ({
         onEdgesChange={onEdgesStateChange}
         onConnect={onConnect}
         nodeTypes={nodeTypes}
-        fitView
+        fitView={false}
         attributionPosition="bottom-left"
         className="bg-[#1a1a1a]"
       >

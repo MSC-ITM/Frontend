@@ -6,7 +6,6 @@ import {
   TaskType,
   Workflow,
   Run,
-  TaskInstance,
   LogEntry,
   WorkflowDetailDTO,
   RunDetailDTO,
@@ -132,12 +131,18 @@ export const workflowsApi = {
       throw new Error('Workflow not found');
     }
 
+    const currentWorkflow = workflows[index];
+    if (!currentWorkflow) {
+      throw new Error('Workflow not found');
+    }
+
     workflows[index] = {
-      ...workflows[index],
-      name: data.name !== undefined ? data.name : workflows[index].name,
-      description: data.description !== undefined ? data.description : workflows[index].description,
-      schedule_cron: data.schedule_cron !== undefined ? data.schedule_cron : workflows[index].schedule_cron,
-      active: workflows[index].active,
+      id: currentWorkflow.id,
+      name: data.name !== undefined ? data.name : currentWorkflow.name,
+      description: data.description !== undefined ? data.description : currentWorkflow.description,
+      schedule_cron: data.schedule_cron !== undefined ? data.schedule_cron : currentWorkflow.schedule_cron,
+      active: currentWorkflow.active,
+      created_at: currentWorkflow.created_at,
     };
 
     // Update steps and edges if provided
@@ -217,7 +222,7 @@ export const workflowsApi = {
       },
     ];
 
-    if (workflowSteps.length > 0) {
+    if (workflowSteps.length > 0 && taskInstances[runId]?.[0] && workflowSteps[0]) {
       logs[runId].push({
         id: generateId('log'),
         run_id: runId,
@@ -288,8 +293,14 @@ export const runsApi = {
       throw new Error('Run not found');
     }
 
-    runs[index].state = 'Canceled';
-    runs[index].finished_at = new Date().toISOString();
+    const currentRun = runs[index];
+    if (!currentRun) {
+      throw new Error('Run not found');
+    }
+
+    currentRun.state = 'Canceled';
+    currentRun.finished_at = new Date().toISOString();
+    runs[index] = currentRun;
 
     // Cancel all pending/running tasks
     if (taskInstances[runId]) {

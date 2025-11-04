@@ -94,13 +94,19 @@ function applySuggestions(steps: Step[], suggestions: any[]): Step[] {
       // Buscar el step por índice desde el path (ej: "steps[0]")
       const targetIndex = parseInt(suggestion.path?.match(/\d+/)?.[0] || '-1');
       if (targetIndex >= 0 && targetIndex < updatedSteps.length) {
-        updatedSteps[targetIndex] = {
-          ...updatedSteps[targetIndex],
-          params: {
-            ...updatedSteps[targetIndex].params,
-            ...suggestion.detail
-          }
-        };
+        const currentStep = updatedSteps[targetIndex];
+        if (currentStep) {
+          updatedSteps[targetIndex] = {
+            id: currentStep.id,
+            workflow_id: currentStep.workflow_id,
+            node_key: currentStep.node_key,
+            type: currentStep.type,
+            params: {
+              ...currentStep.params,
+              ...suggestion.detail
+            }
+          };
+        }
       }
     }
     // Manejar sugerencias de add_arg (agregar parámetro)
@@ -109,15 +115,21 @@ function applySuggestions(steps: Step[], suggestions: any[]): Step[] {
       if (targetIndex >= 0 && targetIndex < updatedSteps.length && suggestion.detail.arg_name) {
         // Limpiar arg_name por si viene con "params." como prefijo
         const cleanArgName = suggestion.detail.arg_name.replace(/^params\./, '');
+        const currentStep = updatedSteps[targetIndex];
 
-        updatedSteps[targetIndex] = {
-          ...updatedSteps[targetIndex],
-          params: {
-            ...updatedSteps[targetIndex].params,
-            [cleanArgName]: suggestion.detail.arg_value
-          }
-        };
-        console.log(`[AI] Added parameter "${cleanArgName}" = "${suggestion.detail.arg_value}" to step ${targetIndex}`);
+        if (currentStep) {
+          updatedSteps[targetIndex] = {
+            id: currentStep.id,
+            workflow_id: currentStep.workflow_id,
+            node_key: currentStep.node_key,
+            type: currentStep.type,
+            params: {
+              ...currentStep.params,
+              [cleanArgName]: suggestion.detail.arg_value
+            }
+          };
+          console.log(`[AI] Added parameter "${cleanArgName}" = "${suggestion.detail.arg_value}" to step ${targetIndex}`);
+        }
       }
     }
     // Manejar sugerencias de modify_arg (modificar parámetro)
@@ -126,15 +138,21 @@ function applySuggestions(steps: Step[], suggestions: any[]): Step[] {
       if (targetIndex >= 0 && targetIndex < updatedSteps.length && suggestion.detail.arg_name) {
         // Limpiar arg_name por si viene con "params." como prefijo
         const cleanArgName = suggestion.detail.arg_name.replace(/^params\./, '');
+        const currentStep = updatedSteps[targetIndex];
 
-        updatedSteps[targetIndex] = {
-          ...updatedSteps[targetIndex],
-          params: {
-            ...updatedSteps[targetIndex].params,
-            [cleanArgName]: suggestion.detail.arg_value
-          }
-        };
-        console.log(`[AI] Modified parameter "${cleanArgName}" = "${suggestion.detail.arg_value}" in step ${targetIndex}`);
+        if (currentStep) {
+          updatedSteps[targetIndex] = {
+            id: currentStep.id,
+            workflow_id: currentStep.workflow_id,
+            node_key: currentStep.node_key,
+            type: currentStep.type,
+            params: {
+              ...currentStep.params,
+              [cleanArgName]: suggestion.detail.arg_value
+            }
+          };
+          console.log(`[AI] Modified parameter "${cleanArgName}" = "${suggestion.detail.arg_value}" in step ${targetIndex}`);
+        }
       }
     }
     // Ignorar add_node y reorder por ahora (requieren lógica más compleja)
@@ -376,7 +394,7 @@ export async function predictWorkflowOutcome(
  */
 function predictWorkflowOutcomeFallback(
   steps: Step[],
-  edges: Edge[]
+  _edges: Edge[]
 ): AIPredictionResult {
   const taskCosts = {
     http_get: { time: 5, cost: 'bajo' as const },

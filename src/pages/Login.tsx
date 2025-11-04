@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { loginCredentialsSchema, validateSafe, getValidationErrors, LoginCredentials } from '../types';
+import { loginCredentialsSchema, validateSafe, getValidationErrors } from '../types';
 
 // ============================================
 // Types & Interfaces

@@ -1,4 +1,3 @@
-// Export all reusable components
 export { default as StateBadge } from './StateBadge';
 export { default as Button } from './Button';
 export { default as Card } from './Card';

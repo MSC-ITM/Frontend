@@ -34,7 +34,6 @@ describe('CostBar', () => {
   it('debe mostrar todos los niveles en la barra', () => {
     render(<CostBar level="medio" />);
 
-    // Verificar que aparezcan todos los niveles en los labels
     const bajoLabels = screen.getAllByText('Bajo');
     const medioLabels = screen.getAllByText('Medio');
     const altoLabels = screen.getAllByText('Alto');
@@ -54,7 +53,6 @@ describe('CostBar', () => {
   it('debe aplicar clases correctas para nivel bajo', () => {
     const { container } = render(<CostBar level="bajo" />);
 
-    // Verificar que existe un elemento con clase de color emerald (bajo)
     const emeraldElements = container.querySelectorAll('[class*="emerald"]');
     expect(emeraldElements.length).toBeGreaterThan(0);
   });
@@ -62,7 +60,6 @@ describe('CostBar', () => {
   it('debe aplicar clases correctas para nivel medio', () => {
     const { container } = render(<CostBar level="medio" />);
 
-    // Verificar que existe un elemento con clase de color yellow (medio)
     const yellowElements = container.querySelectorAll('[class*="yellow"]');
     expect(yellowElements.length).toBeGreaterThan(0);
   });
@@ -70,7 +67,6 @@ describe('CostBar', () => {
   it('debe aplicar clases correctas para nivel alto', () => {
     const { container } = render(<CostBar level="alto" />);
 
-    // Verificar que existe un elemento con clase de color rose (alto)
     const roseElements = container.querySelectorAll('[class*="rose"]');
     expect(roseElements.length).toBeGreaterThan(0);
   });
